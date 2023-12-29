@@ -4,15 +4,10 @@ import os
 
 import matplotlib.pyplot as plt
 import mplhep as hep
-import numpy as np
-from progress.bar import IncrementalBar
 import yaml
 import json
 
-from turnon_collection import TurnOnCollection
-from scaling_collection import ScalingCollection
 from plotter import Plotter
-import utils
 
 
 plt.style.use(hep.style.CMS)
@@ -22,7 +17,7 @@ class ComparisonCentral(Plotter):
     def __init__(self, cfg_plots_path):
         with open(cfg_plots_path, "r") as f:
             self.cfg_plots = yaml.safe_load(f)
-        for plot_name, cfg_plot in self.cfg_plots.items():
+        for plot_name, _ in self.cfg_plots.items():  # TODO: What is this supposed to accomplish?
             self.plot_name = plot_name
         self.cfg = self.cfg_plots[self.plot_name]
         self.save_dir = self.cfg["save_dir"]

@@ -76,7 +76,7 @@ class ArrayLoader:
         Load test objects.
         """
         test_objects = self.turnon_collection.cfg_plot.test_objects
-        for test_obj, obj_cfg in test_objects.items():
+        for test_obj, _obj_cfg in test_objects.items():
             obj_name = self.turnon_collection.cfg_plot.get_base_obj(test_obj)
             test_array = self._load_array_from_parquet(obj_name)
             test_array = ak.with_name(test_array, "Momentum4D")
@@ -217,7 +217,7 @@ class TurnOnCollection:
             if not (quality_id := self.cfg_plot.get_quality_id(test_obj)):
                 return
 
-            ## force quality bit to be int!
+            # force quality bit to be int!
             self.ak_arrays[test_obj]["quality"] = ak.values_astype(
                 self.ak_arrays[test_obj]["quality"], np.int32
             )
@@ -241,7 +241,7 @@ class TurnOnCollection:
                 continue
 
             isolation = L1IsoCut(self.ak_arrays, test_obj, iso_BB, iso_EE, l1_iso)
-            sel = ~getattr(isolation, "ISO_EEBB")
+            sel = ~isolation.ISO_EEBB
             self.ak_arrays[test_obj] = self.ak_arrays[test_obj][sel]
 
     def _select_highest_pt_ref_object(self):
@@ -323,7 +323,7 @@ class TurnOnCollection:
 
         ref_obj = self._remove_inner_nones_zeros(self.ak_arrays["ref"][ref_field])
 
-        for test_obj, cfg in self.cfg_plot.test_objects.items():
+        for test_obj, _cfg in self.cfg_plot.test_objects.items():
             sel_threshold = self.numerators["test"][test_obj] >= self.threshold
             numerator = self.numerators["ref"][test_obj][sel_threshold]
             numerator = self._remove_inner_nones_zeros(numerator)
@@ -340,7 +340,7 @@ class TurnOnCollection:
             self.hists["ref"][test_obj] = np.histogram(ref_flat_np, bins=self.bins)
 
     def _skim_to_hists_dR_matched_Iso(self):
-        for test_obj, cfg in self.cfg_plot.test_objects.items():
+        for test_obj, _cfg in self.cfg_plot.test_objects.items():
             numerator = self.numerators["test"][test_obj]
             numerator = self._remove_inner_nones_zeros(numerator)
             numerator = self._flatten_array(numerator, ak_to_np=True)

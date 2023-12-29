@@ -140,7 +140,7 @@ class EfficiencyPlotter(Plotter):
         xbins = self.turnon_collection.bins
         xbins = 0.5 * (xbins[1:] + xbins[:-1])
 
-        for obj_key, gen_hist_trig in self.turnon_collection.hists.items():
+        for obj_key, _gen_hist_trig in self.turnon_collection.hists.items():
             if obj_key == "ref":
                 continue
             efficiency, yerr = self.turnon_collection.get_efficiency(obj_key)
@@ -162,7 +162,7 @@ class EfficiencyPlotter(Plotter):
             plt.savefig(f"{plot_fname}{ext}")
         self._save_json(f"{plot_fname}.json")
 
-        ## save config
+        # save config
         with open(f"{plot_fname}.yaml", "w") as outfile:
             yaml.dump({self.plot_name: self.cfg}, outfile, default_flow_style=False)
 
@@ -194,7 +194,7 @@ class EfficiencyPlotter(Plotter):
             plt.savefig(f"{plot_fname}{ext}")
         self._save_json(f"{plot_fname}.json")
 
-        ## save config
+        # save config
         with open(f"{plot_fname}.yaml", "w") as outfile:
             yaml.dump({self.plot_name: self.cfg}, outfile, default_flow_style=False)
 
@@ -382,7 +382,7 @@ class ScalingPlotter(Plotter):
 
         ax.legend(loc="lower right")
         ax.set_xlabel("L1 threshold [GeV]")
-        ax.set_ylabel(f"{int(self.scaling_pct*100)}% Location (gen, GeV)")
+        ax.set_ylabel(f"{int(self.scaling_pct * 100)}% Location (gen, GeV)")
         watermark = f"{self.version}_{self.plot_name}"
         ax.text(
             0,
@@ -401,7 +401,7 @@ class ScalingPlotter(Plotter):
             plt.savefig(f"{plot_fname}{ext}")
         self._save_json(f"{plot_fname}.json")
 
-        ## save config
+        # save config
         with open(f"{plot_fname}.yaml", "w") as outfile:
             yaml.dump(
                 {self.plot_name: self.cfg_plot}, outfile, default_flow_style=False

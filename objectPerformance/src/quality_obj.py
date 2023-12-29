@@ -64,12 +64,12 @@ class Quality:
         self.sel_odd_type = (ak_arrays["quality"] % 2 == 0) & (ak_arrays["region"] == 1)
         self.sel_not_4 = ak_arrays["region"] == 4
 
-        ### EG IDs from 123x
+        # EG IDs from 123x
         self.sel_tkIsoPho_123 = (
             (ak_arrays["quality"] > 0) & (abs(ak_arrays["eta"]) < 1.479)
         ) | ((ak_arrays["quality"] == 3) & (abs(ak_arrays["eta"]) >= 1.479))
 
-        ## EG IDs from 125x
+        # EG IDs from 125x
         # for EG: region == HGC
         if "passeseleid" in ak_arrays.fields:
             self.sel_EG_barrelID = (ak_arrays["region"] == 0) & (
@@ -93,7 +93,7 @@ class Quality:
         # self.sel_EG_barrelID = (ak_arrays['region'] == 0) & (((ak_arrays['quality'] >> 1)&1) > 0)
         # self.sel_EG_endcapID = (ak_arrays['region'] == 1) & (((ak_arrays['quality'] >> 0)&1) > 0)
 
-        ## tkPhoton from 125x
+        # tkPhoton from 125x
         # self.sel_tkPho_barrelID = (ak_arrays['region'] == 0) & (ak_arrays['passeseleid'] == 1)
         # self.sel_tkPho_endcapID = (ak_arrays['region'] == 1) & (ak_arrays['passesphoid'] == 1)
         if "passesphoid" in ak_arrays.fields:

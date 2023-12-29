@@ -158,7 +158,7 @@ class ScalingCollection:
         bins = 0.5 * (bins[1:] + bins[:-1])
         threshold = turnon_collection.threshold
 
-        for obj_key, gen_hist_trig in turnon_collection.hists.items():
+        for obj_key, _gen_hist_trig in turnon_collection.hists.items():
             if (obj_key == "ref") | (obj_key != test_obj):
                 continue
             efficiency, yerr = turnon_collection.get_efficiency(obj_key)
@@ -190,7 +190,7 @@ class ScalingCollection:
         bins = 0.5 * (bins[1:] + bins[:-1])
         threshold = turnon_collection.threshold
 
-        for obj_key, gen_hist_trig in turnon_collection.hists.items():
+        for obj_key, _gen_hist_trig in turnon_collection.hists.items():
             if (obj_key == "ref") | (obj_key != test_obj):
                 continue
             efficiency, _ = turnon_collection.get_efficiency(obj_key)
@@ -209,7 +209,7 @@ class ScalingCollection:
         bins = 0.5 * (bins[1:] + bins[:-1])
         threshold = turnon_collection.threshold
 
-        for obj_key, gen_hist_trig in turnon_collection.hists.items():
+        for obj_key, _gen_hist_trig in turnon_collection.hists.items():
             if (obj_key == "ref") | (obj_key != test_obj):
                 continue
             efficiency, _ = turnon_collection.get_efficiency(obj_key)
