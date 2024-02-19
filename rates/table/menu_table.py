@@ -37,10 +37,36 @@ class MenuTable:
             The name of the file is specified in the config used for the MenuTable init.
         '''
         with uproot.open(self.fname) as f:
-            arr = f["l1PhaseIITree/L1PhaseIITree"].arrays(
+
+            trees = [t.split(";")[0] for t in f.keys()]
+
+            if "l1PhaseIITree" in trees:
+                tree = "l1PhaseIITree/L1PhaseIITree"
+            elif "Events" in trees:
+                tree = "Events"
+            else:
+                print("No fitting tree found in file:", trees)
+                exit(0)
+
+            arr = f[tree].arrays(
                 filter_name = f"{obj}*", 
                 how = "zip"
                 ) 
+        # print(obj, arr)
+        if "jagged0" in arr.fields:
+            arr = arr["jagged0"]
+        elif obj in arr.fields:
+            arr=arr[obj]
+        elif "MET" in obj or obj=="L1GTscJetSum":
+            arr = ak.zip({f.replace(obj+"_","").lower():arr[f] for f in arr.fields})
+        else:
+            arr = ak.zip({f.replace(obj,"").lower():arr[f] for f in arr.fields})
+
+        # for sums
+        arr["idx"] = ak.local_index(arr)
+        # if obj == "L1puppiJetSC4HT":
+        #     arr = arr[ak.local_index(arr)]
+
         return arr
 
     def get_scalings(self, scalings):
@@ -75,11 +101,17 @@ class MenuTable:
             For each object, a dedicated scaling in the barrel/endcap regions
             is applied to the online pT.
         '''
+        
         # initialise array of zeros identical to the original pt        
         if pt_var is not None: pt_orig = arr[pt_var]
         elif "et" in arr.fields: pt_orig = arr.et
         elif "pt" in arr.fields: pt_orig = arr.pt
         elif  ""  in arr.fields: pt_orig = arr[""][:,0]
+        ## HACK for GT
+        elif "ht" in arr.fields:
+            pt_orig = arr.ht
+        elif "mht" in arr.fields:
+            pt_orig = arr.mht
         else:
             print("Error! Unknown pt branch")
             return 0 
@@ -97,7 +129,7 @@ class MenuTable:
                 # scale pt for non-masked elements of this eta region
                 new_pt = new_pt + eta_mask * (pt_orig * values["slope"] + values["offset"])
 
-        return ak.with_field(arr, new_pt, "offline_pt")
+        return ak.with_field(arr, ak.values_astype(new_pt, "int"), "offline_pt")
 
     def scale_pt(self, obj, arr):
         '''
@@ -105,9 +137,9 @@ class MenuTable:
             If the scaling for a given object is not found, `offline_pt` is set to
             be equal to the online pt.
         '''
+        if "PV" in obj: return arr
 
         if obj in self.scalings:
-            # print(self.scalings[obj])
             arr = self.add_offline_pt(arr, self.scalings[obj])
         else:
             print("No scalings found for " + obj)
@@ -120,7 +152,6 @@ class MenuTable:
             arr["mass"] = 0.0*ak.ones_like(arr["eta"])
             arr = ak.with_name(arr, "Momentum4D")
         
-        arr["idx"] = ak.local_index(arr)
         return arr
 
     def format_values(self, arr):
@@ -163,12 +194,13 @@ class MenuTable:
         load_obj = obj
 
         if obj == "tkIsoElectron": load_obj = "tkElectron"
+        if obj == "L1tkIsoElectron": load_obj = "L1tkElectron"
+        if obj == "L1GTtkIsoElectron": load_obj = "L1GTtkElectron"
+        if obj == "L1puppiJetSC4HT": load_obj = "L1puppiJetSC4sums"
+        if obj == "L1puppiJetSC4MHT": load_obj = "L1puppiJetSC4sums"
 
         arr = self.load_minbias(load_obj)
-        if "jagged0" in arr.fields:
-            arr = arr["jagged0"]
-        
-        arr = ak.zip({f.replace(load_obj,"").lower():arr[f] for f in arr.fields})
+                
         arr = self.format_values(arr)
 
         arr = self.scale_pt(obj, arr)
@@ -390,7 +422,7 @@ class MenuTable:
             fname = f"{self.table_outdir}/{self.table_fname}_{self.version}_masks.parquet"
             print(f"Dumping masks to parquet in: {fname}")
 
-            ak.to_parquet(ak.zip(self.trig_masks), fname)
+            ak.to_parquet(ak.zip(self.trig_masks), fname, compression = "NONE")
         else:
             print("No masks created! Run `prepare_masks` first.")
 
