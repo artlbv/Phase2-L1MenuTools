@@ -21,7 +21,7 @@ L1Jet:
           - "abs({eta}) < 7"
 
 L1EtSum:
-  match_dR: 0.3
+  # match_dR: 0.3
   label: "L1 EtSum"
   eta_ranges:
     inclusive: [0, 7]
@@ -34,8 +34,9 @@ L1EtSum:
       cuts:
         inclusive:
           - "{etSumType} == 1"
+          # - "{pt} > 200"
     METHF:
-      label: "MET"
+      label: "METHF"
       cuts:
         inclusive:
           - "{etSumType} == 8"
