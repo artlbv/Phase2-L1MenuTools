@@ -330,13 +330,13 @@ L1_PFIsoTau_PFIsoTau:
     - leg1.offline_pt > 52.0
     - abs(leg1.eta)<2.172
     - leg1.passLooseNN>0
-    obj: L1nnTau
+    obj: L1nnPuppiTau
   leg2:
     leg_mask:
     - leg2.offline_pt > 52.0
     - abs(leg2.eta)<2.172
     - leg2.passLooseNN>0
-    obj: L1nnTau
+    obj: L1nnPuppiTau
 L1_PFIsoTau_PFMet:
   cross_masks: []
   leg1:
@@ -344,7 +344,7 @@ L1_PFIsoTau_PFMet:
     - leg1.offline_pt > 55.0
     - abs(leg1.eta)<2.172
     - leg1.passLooseNN>0
-    obj: L1nnTau
+    obj: L1nnPuppiTau
   leg2:
     leg_mask:
     - leg2.offline_pt > 190.0
@@ -361,7 +361,7 @@ L1_PFIsoTau_TkMu:
     - leg2.offline_pt > 42.0
     - abs(leg2.eta)<2.172
     - leg2.passLooseNN>0
-    obj: L1nnTau
+    obj: L1nnPuppiTau
   leg3:
     leg_mask:
     - leg3.offline_pt > 18.0
@@ -466,7 +466,7 @@ L1_TkEleIso_PFIsoTau:
     - leg3.offline_pt > 45.0
     - abs(leg3.eta)<2.172
     - leg3.passLooseNN>0
-    obj: L1nnTau
+    obj: L1nnPuppiTau
     
 L1_TkEle_PFJet_dRMin:
   cross_masks:

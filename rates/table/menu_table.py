@@ -36,6 +36,8 @@ class MenuTable:
             Function to load the minbias sample to be used for the rates computation.
             The name of the file is specified in the config used for the MenuTable init.
         '''
+        print(f"Loading {obj} from ROOT file {self.fname}")
+
         with uproot.open(self.fname) as f:
 
             trees = [t.split(";")[0] for t in f.keys()]
@@ -49,23 +51,29 @@ class MenuTable:
                 exit(0)
 
             arr = f[tree].arrays(
-                filter_name = f"{obj}*", 
-                how = "zip"
-                ) 
+                filter_name = f"{obj}*",
+                how = "zip",
+                entry_stop = 1000,
+                )
         # print(obj, arr)
         if "jagged0" in arr.fields:
             arr = arr["jagged0"]
         elif obj in arr.fields:
-            arr=arr[obj]
-        elif "MET" in obj or obj=="L1GTscJetSum":
+            arr = arr[obj]
+        
+        if "L1puppiMET" in obj or obj=="L1GTscJetSum":
             arr = ak.zip({f.replace(obj+"_","").lower():arr[f] for f in arr.fields})
+        elif "z0L1TkPV" in obj:
+            arr = ak.zip({"et": arr.to_numpy()})
+            # arr["et"] = arr
+            # print(arr)
         else:
             arr = ak.zip({f.replace(obj,"").lower():arr[f] for f in arr.fields})
 
-        # for sums
-        arr["idx"] = ak.local_index(arr)
-        # if obj == "L1puppiJetSC4HT":
-        #     arr = arr[ak.local_index(arr)]
+        if "z0L1TkPV" not in obj:
+            arr["idx"] = ak.local_index(arr)
+
+        # print(arr)
 
         return arr
 
@@ -101,8 +109,8 @@ class MenuTable:
             For each object, a dedicated scaling in the barrel/endcap regions
             is applied to the online pT.
         '''
-        
-        # initialise array of zeros identical to the original pt        
+
+        # initialise array of zeros identical to the original pt
         if pt_var is not None: pt_orig = arr[pt_var]
         elif "et" in arr.fields: pt_orig = arr.et
         elif "pt" in arr.fields: pt_orig = arr.pt
@@ -114,14 +122,14 @@ class MenuTable:
             pt_orig = arr.mht
         else:
             print("Error! Unknown pt branch")
-            return 0 
+            return 0
 
         if None in obj_scalings:
             values = obj_scalings[None]
             new_pt = pt_orig * values["slope"] + values["offset"] * (pt_orig > 0)
         else:
             new_pt = ak.zeros_like(pt_orig)
-            
+
             # loop through eta regions with it's scaling parameters
             for region, values in obj_scalings.items():
                 # create eta mask for this eta region
@@ -151,7 +159,7 @@ class MenuTable:
         if "eta" in arr.fields:
             arr["mass"] = 0.0*ak.ones_like(arr["eta"])
             arr = ak.with_name(arr, "Momentum4D")
-        
+
         return arr
 
     def format_values(self, arr):
@@ -163,10 +171,10 @@ class MenuTable:
             The ID branches (`["passeseleid","passessaid","passesphoid"]`) are
             converted into boolean variables for easier usage in the triggers definition.
         '''
-        if "et" not in arr.fields: 
+        if "et" not in arr.fields:
             if "pt" in arr.fields:
                 arr["et"] = arr.pt
-            elif "" in arr.fields: 
+            elif "" in arr.fields:
                 arr["pt"] = arr[""]
                 arr["et"] = arr[""]
         elif "pt" not in arr.fields:
@@ -186,11 +194,6 @@ class MenuTable:
             `pt`, `et`, and ID branches.
             The `scale_pt` function is used to convert the online pT into offline using the scalings.
         '''
-        # TODO: Implement reading from parquet
-        # vers = self.version
-        # fname = f"/eos/cms/store/group/dpg_trigger/comm_trigger/L1Trigger/alobanov/phase2/menu/ntuples/cache/{vers}/{vers}_MinBias_{obj}.parquet"
-        # arr = ak.from_parquet(fname) 
-
         load_obj = obj
 
         if obj == "tkIsoElectron": load_obj = "tkElectron"
@@ -199,14 +202,32 @@ class MenuTable:
         if obj == "L1puppiJetSC4HT": load_obj = "L1puppiJetSC4sums"
         if obj == "L1puppiJetSC4MHT": load_obj = "L1puppiJetSC4sums"
 
-        arr = self.load_minbias(load_obj)
-                
-        arr = self.format_values(arr)
+        if self.fname.endswith(".root"):
+            arr = self.load_minbias(load_obj)
+            arr = self.format_values(arr)
+
+        elif self.fname.endswith(".parquet"):
+            # TODO: Implement reading from parquet
+            # vers = self.version
+            # fname = f"/eos/cms/store/group/dpg_trigger/comm_trigger/L1Trigger/alobanov/phase2/menu/ntuples/cache/{vers}/{vers}_MinBias_{obj}.parquet"
+            fname = self.fname % load_obj
+            print(f"Loading {load_obj} from file: {fname}")
+            arr = ak.from_parquet(fname)
+            ## nano
+            if obj.startswith("L1"):
+                arr = ak.zip({f.replace(load_obj+"_",""):arr[f] for f in arr.fields})
+            else:
+                arr = ak.zip({f.replace(load_obj,"").lower():arr[f] for f in arr.fields})
+                arr = self.format_values(arr)
+            arr["idx"] = ak.local_index(arr)
+            print(arr)
+        else:
+            print("NO CORRECT sample fname provided")
 
         arr = self.scale_pt(obj, arr)
-        
+
         return arr
-    
+
     def get_legs(self, seed_legs):
         '''
             Function that parses the config file (menu definition)
@@ -226,7 +247,7 @@ class MenuTable:
 
             leg_mask_str = "&".join([f"({s})" for s in leg_mask_str]).replace(leg,"leg_arr")
             leg_arr = all_arrs[obj]
-            
+
             # get masked array
             leg_mask = eval(leg_mask_str)
 
@@ -268,7 +289,7 @@ class MenuTable:
                 eval_str = " & ".join([f"nodup_masks[{i}]" for i in range(len(nodup_masks))])
                 nodup_mask = eval(eval_str)
                 combos = combos[nodup_mask]
-                
+
         return combos
 
     def get_legs_and_masks(self, seed_legs):
@@ -289,10 +310,10 @@ class MenuTable:
         '''
             Function that selects only relevant entries in the arrays and returns the
             awkward array corresponding to events which satisfy the cuts on the trigger legs.
-        '''  
+        '''
         eval_str = []
         for leg, leg_arr in leg_arrs.items():
-            if "var" in str(leg_arr.type): 
+            if "var" in str(leg_arr.type):
                 eval_str.append(f"(ak.num({leg}) > 0)")
             else:
                 eval_str.append(f"(ak.is_none({leg}) == False)")
@@ -322,7 +343,7 @@ class MenuTable:
             each leg is selected and the masks are applied (together with cross-masks/seeds).
             The function returns the total mask that defines the trigger.
         '''
-        seed_legs, cross_masks_str, cross_seeds = self.seeds_from_cfg(seed) 
+        seed_legs, cross_masks_str, cross_seeds = self.seeds_from_cfg(seed)
         leg_arrs, combos = self.get_legs_and_masks(seed_legs)
 
         ## define leg arrays
@@ -366,15 +387,19 @@ class MenuTable:
 
         seeds = self.trig_seeds
 
-        for seed in sorted(seeds):    
+        for seed in sorted(seeds):
 
             print(seed)
-            
+            # if "HT" in seed: continue
+            # if "L1_DoubleTkMu_PfJet_PfMet" not in seed: continue
+
             mask = self.get_npass(seed, self.trig_seeds[seed])
             npass = np.sum(mask)
             print("##### Npasses:", npass,"\n")
 
             trig_masks[seed] = mask.to_numpy()
+
+            # break
 
         return trig_masks
 
@@ -390,7 +415,7 @@ class MenuTable:
         self.trig_masks = trig_masks
 
         for seed, mask in trig_masks.items():
-            
+
             total_mask = total_mask | mask
             npass = np.sum(mask)
             eff = npass/len(mask)
@@ -412,7 +437,7 @@ class MenuTable:
         print("Total nev: %i" % len(total_mask))
 
         return table
-    
+
     def dump_masks(self):
         '''
             Function that dumps to file the masks produced by `prepare_masks`.
