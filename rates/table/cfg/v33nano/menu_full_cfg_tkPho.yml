@@ -1,0 +1,15 @@
+MenuV33:
+  version: "V33_MinBias"
+  #sample: "/eos/cms/store/group/dpg_trigger/comm_trigger/L1Trigger/alobanov/phase2/menu/ntuples/CMSSW_12_5_2p1/v29/MinBias_1.root"
+  #sample: "/eos/home-a/alobanov/L1T/phase2/menu/ntuples/gt_emu/tt_step1_140x_1kev.root"
+  sample: "/eos/cms/store/group/dpg_trigger/comm_trigger/L1Trigger/alobanov/phase2/menu/ntuples/cache/V33nano/V33nano_MinBias_%s.parquet"
+#   sample: "/eos/cms/store/group/dpg_trigger/comm_trigger/L1Trigger/alobanov/phase2/menu/ntuples/cache/V33nano/V33nano_Hgg_%s.parquet"
+  menu_config: "cfg/v33nano/menu_full_TkPhoInsteadEG.yml"
+  scalings:
+      scalings_path: "/eos/user/m/mbonanom/www/Postdoc/L1PhaseII/V29/scalings/"
+      collect_scalings: False
+      scalings_outdir: "scalings_input/V33nano/"
+      scalings_file: "scalings_fromV29.yml"
+  table:
+      table_fname: "rates_full_Final"
+      table_outdir: "rates_tables/V33_ttbar_test"

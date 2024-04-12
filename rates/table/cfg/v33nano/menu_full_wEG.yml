@@ -1,0 +1,708 @@
+L1_SingleEGEle:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 51.0
+    - abs(leg1.eta) < 2.4
+    - ak.where(abs(leg1.eta)<1.479, leg1.eleId, leg1.saId)
+    obj: L1EG
+L1_DoubleEGEle:
+  cross_masks:
+  - leg1.deltaR(leg2) > 0.1
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 37.0
+    - abs(leg1.eta) < 2.4
+    - ak.where(abs(leg1.eta)<1.479, leg1.eleId, leg1.saId)
+    obj: L1EG
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 24.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, leg2.phoId)
+    obj: L1EG
+L1_SingleTkEle:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 36.0
+    - abs(leg1.eta) < 2.4
+    - leg1.eleId
+    obj: L1tkElectron
+L1_SingleTkEleIso:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 28.0
+    - leg1.eleId >= 0
+    - ak.where(abs(leg1.eta)<1.479, leg1.relIso<0.13, leg1.relIso<0.28)
+    obj: L1tkIsoElectron
+L1_SingleTkMu:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 22.0
+    - abs(leg1.eta) < 2.4
+    obj: L1gmtTkMuon
+L1_SingleTkPhoIso:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 36.0
+    - abs(leg1.eta) < 2.4
+    - ak.where(abs(leg1.eta)<1.479, leg1.eleId, leg1.phoId)
+    - ak.where(abs(leg1.eta)<1.479, leg1.relIso<0.25, leg1.relIso<0.205)
+    obj: L1tkPhoton
+L1_DoubleTkEle:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 25.0
+    - abs(leg1.eta) < 2.4
+    - ak.where(abs(leg1.eta)<1.479, leg1.eleId, True)
+    # - leg1.eleId
+    # - leg1.eleId * (abs(leg1.eta)<1.479) +  (abs(leg1.eta) >= 1.479)
+    obj: L1tkElectron
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 12.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, True)
+    # - leg2.eleId
+    # - leg2.eleId * (abs(leg2.eta)<1.479) +  (abs(leg2.eta) >= 1.479)
+    obj: L1tkElectron
+L1_DoublePFJet_MassMin:
+  cross_masks:
+  - (leg1+leg2).mass>620
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 160.0
+    obj: L1puppiJetSC4
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 35.0
+    - leg2.pt>25
+    obj: L1puppiJetSC4
+L1_DoublePFJet_dEtaMax:
+  cross_masks:
+  - abs(leg2.eta-leg1.eta)<1.6
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 112.0
+    - leg1.pt>25
+    - abs(leg1.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 112.0
+    - leg2.pt>25
+    - abs(leg2.eta) < 2.4
+    obj: L1puppiJetSC4
+L1_DoubleTkEle_PFHTT:
+  cross_masks:
+  - (abs(leg2.z0-leg1.z0)<1 & (leg2.deltaR(leg3)>0))
+  - (abs(leg3.z0-leg1.z0)<1 & (leg2.deltaR(leg3)>0))
+  - (leg3.deltaR(leg2)>0)
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 8.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, True)
+    obj: L1tkElectron
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 8.0
+    - abs(leg3.eta) < 2.4
+    - ak.where(abs(leg3.eta)<1.479, leg3.eleId, True)
+    obj: L1tkElectron
+  leg4:
+    leg_mask:
+    - leg4.offline_pt > 390.0
+    - leg4.idx == 0
+    obj: L1puppiJetSC4HT
+L1_DoubleTkMu_PfHTT:
+  cross_masks:
+  - (abs(leg2.z0-leg1.z0)<1 & (leg3.deltaR(leg2)>0))
+  - (abs(leg3.z0-leg1.z0)<1 & (leg3.deltaR(leg2)>0))
+  - (leg3.deltaR(leg2)>0)
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.pt>3
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.pt>3
+    - abs(leg3.eta) < 2.4
+    - leg3.hwQual>0
+    obj: L1gmtTkMuon
+  leg4:
+    leg_mask:
+    - leg4.offline_pt > 300.0
+    - leg4.idx == 0
+    obj: L1puppiJetSC4HT
+L1_DoubleTkMu_PfJet_PfMet:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.pt>3
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.pt>3
+    - abs(leg3.eta) < 2.4
+    - leg3.hwQual>0
+    obj: L1gmtTkMuon
+  leg4:
+    leg_mask:
+    - leg4.offline_pt > 60.0
+    - leg4.pt>25
+    - abs(leg4.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg5:
+    leg_mask:
+    - leg5.offline_pt > 130.0
+    obj: L1puppiMET
+L1_DoubleTkMu:
+  cross_masks:
+  - ((abs(leg1.z0-leg2.z0)<1) & (leg1.deltaR(leg2)>0))
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 15.0
+    - abs(leg1.eta) < 2.4
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>7
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+L1_DoubleTkMu0er1p5_SQ_OS_dR_Max1p4:
+  cross_masks:
+  - ((leg1.deltaR(leg2)<1.4))
+  - ((leg1.charge*leg2.charge<0.0))
+  - ((abs(leg2.z0-leg1.z0)<1))
+  - ((leg1.deltaR(leg2)>0))
+  leg1:
+    leg_mask:
+    - abs(leg1.eta)<1.479
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - abs(leg2.eta)<1.479
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+L1_DoubleTkMu4_SQ_OS_dR_Max1p2:
+  cross_masks:
+  - ((leg1.deltaR(leg2)<1.2) & (leg1.deltaR(leg2)>0))
+  - ((leg1.charge*leg2.charge<0.0) & (leg1.deltaR(leg2)>0))
+  - ((abs(leg2.z0-leg1.z0)<1) & (leg1.deltaR(leg2)>0))
+  leg1:
+    leg_mask:
+    - leg1.pt>4
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>4
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+L1_DoubleTkMu4p5er2p0_SQ_OS_Mass7to18:
+  cross_masks:
+  - (((leg1+leg2).mass>7.0) & (leg1.deltaR(leg2)>0))
+  - (((leg1+leg2).mass<18.0) & (leg1.deltaR(leg2)>0))
+  - ((leg1.charge*leg2.charge<0.0) & (leg1.deltaR(leg2)>0))
+  - ((abs(leg2.z0-leg1.z0)<1) & (leg1.deltaR(leg2)>0))
+  leg1:
+    leg_mask:
+    - leg1.pt>4.5
+    - abs(leg1.eta)<2.0
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>4.5
+    - abs(leg2.eta)<2.0
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+L1_DoubleTkMu_TkEle:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.pt>5
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>5
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 9.0
+    - abs(leg3.eta) < 2.4
+    - ak.where(abs(leg3.eta)<1.479, leg3.eleId, True)
+    obj: L1tkElectron
+L1_DoubleTkPhoIso:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 22.0
+    - abs(leg1.eta) < 2.4
+    - ak.where(abs(leg1.eta)<1.479, leg1.eleId, leg1.phoId)
+    - ak.where(abs(leg1.eta)<1.479, leg1.relIso < 0.25, leg1.relIso < 0.205)
+    obj: L1tkPhoton
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 12.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, leg2.phoId)
+    - ak.where(abs(leg2.eta)<1.479, leg2.relIso < 0.25, leg2.relIso < 0.205)
+    obj: L1tkPhoton
+L1_PFHTT:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 450.0
+    - leg1.idx == 0
+    obj: L1puppiJetSC4HT
+L1_PFHTT_QuadJet:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 400.0
+    - leg1.idx == 0
+    obj: L1puppiJetSC4HT
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 70.0
+    - leg2.pt>25.0
+    - abs(leg2.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 55.0
+    - leg3.pt>25.0
+    - abs(leg3.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg4:
+    leg_mask:
+    - leg4.offline_pt > 40.0
+    - leg4.pt>25.0
+    - abs(leg4.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg5:
+    leg_mask:
+    - leg5.offline_pt > 40.0
+    - leg5.pt>25.0
+    - abs(leg5.eta) < 2.4
+    obj: L1puppiJetSC4
+L1_PFIsoTau_PFIsoTau:
+  cross_masks:
+  - leg1.deltaR(leg2)>0.5
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 52.0
+    - abs(leg1.eta)<2.172
+    - leg1.passLooseNN>0
+    obj: L1nnPuppiTau
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 52.0
+    - abs(leg2.eta)<2.172
+    - leg2.passLooseNN>0
+    obj: L1nnPuppiTau
+L1_PFIsoTau_PFMet:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 55.0
+    - abs(leg1.eta)<2.172
+    - leg1.passLooseNN>0
+    obj: L1nnPuppiTau
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 190.0
+    obj: L1puppiMET
+L1_PFIsoTau_TkMu:
+  cross_masks:
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 42.0
+    - abs(leg2.eta)<2.172
+    - leg2.passLooseNN>0
+    obj: L1nnPuppiTau
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 18.0
+    - abs(leg3.eta)<2.1
+    obj: L1gmtTkMuon
+L1_PFMHTT:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 135.5
+    - leg1.idx == 1
+    obj: L1puppiJetSC4MHT
+L1_PFMet:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 200.0
+    obj: L1puppiMET
+L1_PFTau_PFTau:
+  cross_masks:
+  - leg1.deltaR(leg2)>0.5
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 90.0
+    - abs(leg1.eta)<2.172
+    obj: L1caloTau
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 90.0
+    - abs(leg2.eta)<2.172
+    obj: L1caloTau
+L1_SinglePFTau:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 150.0
+    - abs(leg1.eta)<2.172
+    obj: L1caloTau
+
+L1_SinglePfJet:
+  cross_masks: []
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 230.0
+    - leg1.pt>25
+    - abs(leg1.eta) < 2.4
+    obj: L1puppiJetSC4
+
+L1_TkEleIso_EG:
+  cross_masks:
+  - leg1.deltaR(leg2) > 0.1
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 22.0
+    - abs(leg1.eta) < 2.4
+    # - leg1.eleId
+    - ak.where(abs(leg1.eta)<1.479, leg1.relIso<0.13, leg1.relIso<0.28)
+    obj: L1tkIsoElectron
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 12.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, leg2.saId)
+    obj: L1EG
+  
+L1_TkEleIso_PFHTT:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 26.0
+    - abs(leg2.eta)<2.1
+    - leg2.eleId >= 0
+    - ak.where(abs(leg2.eta)<1.479, leg2.relIso<0.13, leg2.relIso<0.28)
+    obj: L1tkIsoElectron
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 190.0
+    - leg3.idx == 0
+    obj: L1puppiJetSC4HT
+
+L1_TkEleIso_PFIsoTau:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 22.0
+    - abs(leg2.eta)<2.1
+    - leg2.eleId >= 0
+    - ak.where(abs(leg2.eta)<1.479, leg2.relIso<0.13, leg2.relIso<0.28)
+    obj: L1tkIsoElectron
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 45.0
+    - abs(leg3.eta)<2.172
+    - leg3.passLooseNN>0
+    obj: L1nnPuppiTau
+    
+L1_TkEle_PFJet_dRMin:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - leg2.deltaR(leg3)>0.3
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 28.0
+    - abs(leg2.eta)<2.1
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, True)
+    obj: L1tkElectron
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 40.0
+    - leg3.pt>25
+    - abs(leg3.eta) < 2.4
+    obj: L1puppiJetSC4
+
+L1_TkEle_TkMu:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.offline_pt > 10.0
+    - abs(leg1.eta) < 2.4
+    - ak.where(abs(leg1.eta)<1.479, leg1.eleId, True)
+    obj: L1tkElectron
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 20.0
+    - abs(leg2.eta) < 2.4
+    obj: L1gmtTkMuon
+
+L1_TkMu_DoubleTkEle:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.pt>6
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 17.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, True)
+    obj: L1tkElectron
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 17.0
+    - abs(leg3.eta) < 2.4
+    - ak.where(abs(leg3.eta)<1.479, leg3.eleId, True)
+    obj: L1tkElectron
+
+L1_TkMu_PfHTT:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.pt>6
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 320.0
+    - leg3.idx == 0
+    obj: L1puppiJetSC4HT
+
+L1_TkMu_PfJet_PfMet:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.pt>3
+    - abs(leg2.eta)<2.1
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 110.0
+    - leg3.pt>25
+    - abs(leg3.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg4:
+    leg_mask:
+    - leg4.offline_pt > 120.0
+    obj: L1puppiMET
+L1_TkMu_PfJet_dRMax_DoubleJet_dEtaMax:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - leg2.deltaR(leg3)<0.4
+  - abs(leg5.eta-leg4.eta)<1.6
+  leg1:
+    leg_mask:
+    - leg1.z0 > -99999.0
+    obj: L1PV
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 12.0
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.offline_pt > 40.0
+    - leg3.pt>25
+    - abs(leg3.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg4:
+    leg_mask:
+    - leg4.offline_pt > 40.0
+    - leg4.pt>25
+    - abs(leg4.eta) < 2.4
+    obj: L1puppiJetSC4
+  leg5:
+    leg_mask:
+    - leg5.offline_pt > 40.0
+    - leg5.pt>25
+    - abs(leg5.eta) < 2.4
+    obj: L1puppiJetSC4
+  
+L1_TkMu_TkEle:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    #- leg1.offline_pt > 7.0
+    - leg1.pt>7
+    - abs(leg1.eta) < 2.4
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 23.0
+    - abs(leg2.eta) < 2.4
+    - ak.where(abs(leg2.eta)<1.479, leg2.eleId, True)
+    obj: L1tkElectron
+
+L1_TkMu_TkEleIso:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.pt>7
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.offline_pt > 20.0
+    - abs(leg2.eta) < 2.4
+    - leg2.eleId >= 0 
+    - ak.where(abs(leg2.eta)<1.479, leg2.relIso<0.13, leg2.relIso<0.28)
+    obj: L1tkIsoElectron
+L1_TripleTkMu:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.pt>5
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>3
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.pt>3
+    - abs(leg3.eta) < 2.4
+    - leg3.hwQual>0
+    obj: L1gmtTkMuon
+L1_TripleTkMu_5SQ_3SQ_0OQ_DoubleMu_5_3_SQ_OS_Mass_Max9:
+  cross_masks:
+  - (leg1+leg2).mass<9.0
+  - leg1.charge*leg2.charge<0.0
+  - abs(leg2.z0-leg1.z0)<1
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.pt>5
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>3
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.pt>0
+    - abs(leg3.eta) < 2.4
+    - leg3.hwQual>0
+    obj: L1gmtTkMuon
+L1_TripleTkMu_5_3p5_2p5_OS_Mass_5to17:
+  cross_masks:
+  - abs(leg2.z0-leg1.z0)<1
+  - leg1.charge*leg3.charge<0.0
+  - (leg1+leg3).mass>5.0
+  - (leg1+leg3).mass<17.0
+  - abs(leg3.z0-leg1.z0)<1
+  leg1:
+    leg_mask:
+    - leg1.pt>5
+    - abs(leg1.eta) < 2.4
+    - leg1.hwQual>0
+    obj: L1gmtTkMuon
+  leg2:
+    leg_mask:
+    - leg2.pt>3.5
+    - abs(leg2.eta) < 2.4
+    - leg2.hwQual>0
+    obj: L1gmtTkMuon
+  leg3:
+    leg_mask:
+    - leg3.pt>2.5
+    - abs(leg3.eta) < 2.4
+    - leg3.hwQual>0
+    obj: L1gmtTkMuon
