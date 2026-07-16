@@ -3,23 +3,9 @@ GenMET:
   eta_ranges:
     inclusive: [0, 7]
 
-GenJet:
-  match_dR: 0.3
-  label: "GenJet"
-  eta_ranges:
-    inclusive: [0, 7]
-    barrel: [0, 1.5]
-    endcap: [1.5, 2.4]
-    forward: [2.4, 5]
-  ids:
-    default:
-      cuts:
-        inclusive:
-          - "abs({eta}) < 7"
-
 L1Jet:
   match_dR: 0.3
-  label: "L1 Jet"
+  label: "Calo Jet"
   eta_ranges:
     inclusive: [0, 7]
     barrel: [0, 1.5]
@@ -33,11 +19,6 @@ L1Jet:
       cuts:
         inclusive:
           - "abs({eta}) < 7"
-    pt25:
-      label: "L1Jet, pt > 25"
-      cuts:
-        inclusive:
-          - "{pt}>25"
 
 L1EtSum:
   # match_dR: 0.3
@@ -63,8 +44,3 @@ L1EtSum:
       cuts:
         inclusive:
           - "{etSumType} == 1"
-    MHTHF:
-      label: "MHTHF"
-      cuts:
-        inclusive:
-          - "{etSumType} == 20"

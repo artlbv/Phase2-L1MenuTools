@@ -1,6 +1,6 @@
 TausMatchingBarrel:
   sample: TT
-  version: Run3Winter24
+  version: Run3Summer23BPix
   match_test_to_ref: True
   reference_object:
     object: "GenVisTau"
@@ -14,7 +14,6 @@ TausMatchingBarrel:
         - "abs({eta}) < 2.4"
   test_objects:
     L1Tau:default: "pt"
-    L1Tau:iso: "pt"
     L1Jet:default: "pt"
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching Efficiency (Barrel)"
@@ -25,7 +24,7 @@ TausMatchingBarrel:
 
 TausMatchingEndcap:
   sample: TT
-  version: Run3Winter24
+  version: Run3Summer23BPix
   match_test_to_ref: True
   reference_object:
     object: "GenVisTau"
@@ -39,7 +38,6 @@ TausMatchingEndcap:
         - "abs({eta}) < 2.4"
   test_objects:
     L1Tau:default: "pt"
-    L1Tau:iso: "pt"
     L1Jet:default: "pt"
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching Efficiency (Endcap)"
@@ -50,7 +48,7 @@ TausMatchingEndcap:
 
 TausMatchingEndcap_2p1:
   sample: TT
-  version: Run3Winter24
+  version: Run3Summer23BPix
   match_test_to_ref: True
   reference_object:
     object: "GenVisTau"
@@ -64,7 +62,6 @@ TausMatchingEndcap_2p1:
         - "abs({eta}) < 2.1"
   test_objects:
     L1Tau:default: "pt"
-    L1Tau:iso: "pt"
     L1Jet:default: "pt"
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching Efficiency (Endcap)"

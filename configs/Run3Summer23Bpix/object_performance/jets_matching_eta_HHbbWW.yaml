@@ -1,6 +1,6 @@
-JetTrigger_Eta_Pt40To100_HHbbWW:
+JetMatching_Eta_Pt40To100_HHbbWW:
   sample: HHbbWW
-  version: Run3Winter24
+  version: Run3Summer23Bpix
   match_test_to_ref: True
   reference_object: 
     object: "GenJet"
@@ -13,19 +13,18 @@ JetTrigger_Eta_Pt40To100_HHbbWW:
       object:
         - "abs({eta}) < 5"
   test_objects:
-    L1Jet:default: "pt"
-    # L1Tau:default: "eta"
-  thresholds: [50, 100]
+    L1Jet:default: "eta"
+    L1Tau:default: "eta"
   xlabel: "Gen. $\\eta$"
-  ylabel: "Trigger Efficiency (<threshold> GeV, barrel) , Gen pt: 40-100 GeV"
+  ylabel: "Matching Efficiency (40-100 GeV)"
   binning:
     min: -5
     max: 5
     step: 0.25
 
-JetTrigger_Eta_Pt100ToInf_HHbbWW:
+JetMatching_Eta_Pt100ToInf_HHbbWW:
   sample: HHbbWW
-  version: Run3Winter24
+  version: Run3Summer23Bpix
   match_test_to_ref: True
   reference_object: 
     object: "GenJet"
@@ -37,11 +36,10 @@ JetTrigger_Eta_Pt100ToInf_HHbbWW:
       object:
         - "abs({eta}) < 5"
   test_objects:
-    L1Jet:default: "pt"
-    # L1Tau:default: "eta"
-  thresholds: [50, 100]
+    L1Jet:default: "eta"
+    L1Tau:default: "eta"
   xlabel: "Gen. $\\eta$"
-  ylabel: "Trigger Efficiency (<threshold> GeV, barrel) , Gen pt: >100 GeV"
+  ylabel: "Matching Efficiency (>100 GeV)"
   binning:
     min: -5
     max: 5

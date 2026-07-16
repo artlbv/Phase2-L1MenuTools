@@ -1,5 +1,5 @@
 JetTurnonBarrel:
-  version: Run3Winter24
+  version: Run3Summer23BPix
   sample: TT
   match_test_to_ref: True
   reference_object:
@@ -14,10 +14,10 @@ JetTurnonBarrel:
   test_objects:
     L1Jet:default:barrel: "pt"
     L1Tau:default:barrel: "pt"
-  thresholds: [26, 30, 34, 50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+  thresholds: [50, 100]
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, barrel)"
   binning:
@@ -26,7 +26,7 @@ JetTurnonBarrel:
     step: 10
 
 JetTurnonEndcap:
-  version: Run3Winter24
+  version: Run3Summer23BPix
   sample: TT
   match_test_to_ref: True
   reference_object:
@@ -40,11 +40,10 @@ JetTurnonEndcap:
         - "abs({eta}) < 2.4"
   test_objects:
     L1Jet:default:endcap: "pt"
-  # thresholds: [50, 100]
-  thresholds: [26, 30, 34, 50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+  thresholds: [50, 100]
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, endcap)"
   binning:
@@ -53,7 +52,7 @@ JetTurnonEndcap:
     step: 10
 
 JetTurnonEndcap_2p1:
-  version: Run3Winter24
+  version: Run3Summer23BPix
   sample: TT
   match_test_to_ref: True
   reference_object:
@@ -68,11 +67,10 @@ JetTurnonEndcap_2p1:
   test_objects:
     L1Jet:default:endcap: "pt"
     L1Tau:default:endcap: "pt"
-  # thresholds: [50, 100]
-  thresholds: [26, 30, 34, 50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+  thresholds: [50, 100]
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, endcap)"
   binning:
@@ -81,7 +79,7 @@ JetTurnonEndcap_2p1:
     step: 10
 
 JetTurnonForward:
-  version: Run3Winter24
+  version: Run3Summer23BPix
   sample: TT
   match_test_to_ref: True
   reference_object:
@@ -96,9 +94,9 @@ JetTurnonForward:
   test_objects:
     L1Jet:default:forward: "pt"
   thresholds: [50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, forward)"
   binning:

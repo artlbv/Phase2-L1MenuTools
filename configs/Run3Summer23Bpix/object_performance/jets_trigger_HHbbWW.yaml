@@ -1,6 +1,6 @@
-JetTurnonBarrel:
-  version: Run3Winter24
-  sample: TT
+JetTurnonBarrel_HHbbWW:
+  version: Run3Summer23Bpix
+  sample: HHbbWW
   match_test_to_ref: True
   reference_object:
     object: "GenJet"
@@ -13,11 +13,11 @@ JetTurnonBarrel:
         - "abs({eta}) < 2.4"
   test_objects:
     L1Jet:default:barrel: "pt"
-    L1Tau:default:barrel: "pt"
-  thresholds: [26, 30, 34, 50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+    # L1Tau:default:barrel: "pt"
+  thresholds: [50, 100]
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, barrel)"
   binning:
@@ -25,9 +25,9 @@ JetTurnonBarrel:
     max: 500
     step: 10
 
-JetTurnonEndcap:
-  version: Run3Winter24
-  sample: TT
+JetTurnonEndcap_HHbbWW:
+  version: Run3Summer23Bpix
+  sample: HHbbWW
   match_test_to_ref: True
   reference_object:
     object: "GenJet"
@@ -40,11 +40,10 @@ JetTurnonEndcap:
         - "abs({eta}) < 2.4"
   test_objects:
     L1Jet:default:endcap: "pt"
-  # thresholds: [50, 100]
-  thresholds: [26, 30, 34, 50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+  thresholds: [50, 100]
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, endcap)"
   binning:
@@ -52,37 +51,36 @@ JetTurnonEndcap:
     max: 500
     step: 10
 
-JetTurnonEndcap_2p1:
-  version: Run3Winter24
-  sample: TT
-  match_test_to_ref: True
-  reference_object:
-    object: "GenJet"
-    x_arg: "pt"
-    label: "Gen Jets"
-    cuts:
-      event:
-        - "abs({eta}) > 1.5"
-      object:
-        - "abs({eta}) < 2.1"
-  test_objects:
-    L1Jet:default:endcap: "pt"
+# JetTurnonEndcap_2p1_HHbbWW:
+#   version: Run3Summer23Bpix
+#   sample: HHbbWW
+#   match_test_to_ref: True
+#   reference_object:
+#     object: "GenJet"
+#     x_arg: "pt"
+#     label: "Gen Jets"
+#     cuts:
+#       event:
+#         - "abs({eta}) > 1.5"
+#       object:
+#         - "abs({eta}) < 2.1"
+#   test_objects:
+#     L1Jet:default:endcap: "pt"
     L1Tau:default:endcap: "pt"
-  # thresholds: [50, 100]
-  thresholds: [26, 30, 34, 50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
-  xlabel: "Gen. $p_T$ (GeV)"
-  ylabel: "Trigger Efficiency (<threshold> GeV, endcap)"
-  binning:
-    min: 0
-    max: 500
-    step: 10
+#   thresholds: [50, 100]
+#   scalings:
+#     method: "naive"
+#     threshold: 0.95
+#   xlabel: "Gen. $p_T$ (GeV)"
+#   ylabel: "Trigger Efficiency (<threshold> GeV, endcap)"
+#   binning:
+#     min: 0
+#     max: 500
+#     step: 10
 
-JetTurnonForward:
-  version: Run3Winter24
-  sample: TT
+JetTurnonForward_HHbbWW:
+  version: Run3Summer23Bpix
+  sample: HHbbWW
   match_test_to_ref: True
   reference_object:
     object: "GenJet"
@@ -96,9 +94,9 @@ JetTurnonForward:
   test_objects:
     L1Jet:default:forward: "pt"
   thresholds: [50, 100]
-  # scalings:
-  #   method: "naive"
-  #   threshold: 0.95
+  scalings:
+    method: "naive"
+    threshold: 0.95
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (<threshold> GeV, forward)"
   binning:
