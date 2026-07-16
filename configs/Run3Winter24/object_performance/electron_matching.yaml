@@ -5,12 +5,12 @@ ElectronsMatchingBarrel:
   reference_object:
     object: "GenPart"
     x_arg: "pt"
-    label: "Gen Electrons"
+    label: "Gen Electron"
     cuts:
       event:
         #- "(({statusFlags}>>7)&1) == 1"
-        - "{status} == 1"
-        - "abs({pdgId}) == 11"
+        # - "{status} == 1"
+        # - "abs({pdgId}) == 11"
         - "abs({eta}) < 1.5"
       object:
         - "abs({eta}) < 2.4"
@@ -31,12 +31,12 @@ ElectronsMatchingEndcap:
   reference_object:
     object: "GenPart"
     x_arg: "pt"
-    label: "Gen Electrons"
+    label: "Gen Electron"
     cuts:
       event:
         # - "(({statusFlags}>>7)&1) == 1"
-        - "{status} == 1"
-        - "abs({pdgId}) == 11"
+        # - "{status} == 1"
+        # - "abs({pdgId}) == 11"
         - "abs({eta}) > 1.5"
       object:
         - "abs({eta}) < 2.4"

@@ -24,10 +24,10 @@ Run3Winter24:
         # # sums
         # L1EtSum: [pt, phi, etSumType]
         # L1Jet: [pt, eta, phi]
-        # L1EG: [pt, eta, phi, hwIso]
+        L1EG: [pt, eta, phi, hwIso]
         #L1Tau: [pt, eta, phi, hwIso]
-        Tau: [pt, eta, phi, idDeepTau2018v2p5VSe, idDeepTau2018v2p5VSmu, idDeepTau2018v2p5VSjet]
-        # L1Mu: [pt, eta, phi, hwQual]
+        # Tau: [pt, eta, phi, idDeepTau2018v2p5VSe, idDeepTau2018v2p5VSmu, idDeepTau2018v2p5VSjet]
+        L1Mu: [pt, eta, phi, hwQual]
           ### OFFLINE
         # PuppiMET: [pt]
 

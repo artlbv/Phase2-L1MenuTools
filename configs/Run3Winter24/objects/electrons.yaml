@@ -7,15 +7,16 @@
 #       cuts:
 #         inclusive:
 #           - "{dr_0.3} < 0.15"
-GenPart:
-  label: "Gen Electron"
-  eta_ranges:
-    inclusive: [0, 7]
-  ids:
-    gen_electron_default:
-      cuts:
-        inclusive:
-          - "(({statusFlags}>>7)&1) == 1"
+# GenPart:
+#   label: "Gen Electron"
+#   eta_ranges:
+#     inclusive: [0, 7]
+#   ids:
+#     gen_electron_default:
+#       cuts:
+#         inclusive:
+#           #- "(({statusFlags}>>7)&1) == 1"
+#           - "abs({eta}) < 3.0"
 
 
 L1EG:

@@ -1,12 +1,12 @@
-GenPart:
-  label: "Gen Muon"
-  eta_ranges:
-    inclusive: [0, 7]
-  ids:
-    gen_electron_default:
-      cuts:
-        inclusive:
-          - "(({statusFlags}>>7)&1) == 1"
+# GenPart:
+#   label: "Gen Muon"
+#   eta_ranges:
+#     inclusive: [0, 7]
+#   ids:
+#     gen_electron_default:
+#       cuts:
+#         inclusive:
+#           - "(({statusFlags}>>7)&1) == 1"
 
 
 L1Mu:
@@ -18,4 +18,10 @@ L1Mu:
     overlap: [0.83, 1.24]
     endcap: [1.24, 2.4]
   ids:
-    default: {}
+    default:
+      label: "inclusive"
+    pt22:
+      label: "pt > 22"
+      cuts:
+        inclusive:
+          - "{pt} > 22"
