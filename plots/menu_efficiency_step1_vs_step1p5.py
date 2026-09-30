@@ -11,7 +11,7 @@ assert s15["E79"].value == "Total Menu" and s1["C65"].value == "Total:"
 # (label, Step1 col, Step1.5 col, Run3 2024 col in Step 1.5 tab [% already]); Run 3 is None if not in the sheet
 samples200 = [("VBF H→ττ","G","T","U"),("VBF H→bb","H","V","W"),("VBF H→inv","I","X","Y"),
               ("ggH→γγ","K","AA","AB"),("HH→bbττ","L","AC","AD"),("HH→bbbb","M","AE","AF")]
-samples140 = [("VBF H→ττ","F","S",None),("ggH→γγ","J","Z",None)]
+samples140 = [("VBF H→ττ","F","S","U"),("ggH→γγ","J","Z","AB")]
 g = lambda ws,c,r: float(ws[f"{c}{r}"].value)*100
 
 fig, axs = plt.subplots(1,2,figsize=(11,4.6),gridspec_kw={"width_ratios":[6,2]},sharey=True)
@@ -21,7 +21,7 @@ for ax,samples,title in [(axs[0],samples200,"Spring24 200 PU"),(axs[1],samples14
     vr3=[float(s15[f"{c}79"].value) if c and s15[f"{c}79"].value is not None else np.nan for *_,c in samples]
     bars=[(-w,v1,"Step 1 (Phase-2, 200PU rate: %.0f kHz)"%float(s1["E65"].value),"#9aa5b1"),
           (0,v15,"Step 1.5 (Phase-2, 200PU rate: %.0f kHz)"%float(s15["P79"].value),"#1f6fb2")]
-    if ax is axs[0]: bars.append((w,vr3,"Run 3 2024 menu (Run 3 samples)","#e08a1e"))
+    bars.append((w,vr3,"Run 3 2024 menu (Run 3 samples)","#e08a1e"))  # Run 3 has no PU label in the sheet; same value in both panels
     for off,v,lab,col in bars:
         b=ax.bar(x+off,np.nan_to_num(v),w,label=lab if ax is axs[0] else None,color=col)
         ax.bar_label(b,labels=["n/a" if np.isnan(t) else "%.0f"%t for t in v],fontsize=8,padding=2)
