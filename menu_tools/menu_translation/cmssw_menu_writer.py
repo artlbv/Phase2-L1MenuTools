@@ -11,6 +11,7 @@ from menu_tools.menu_translation.seed_model import (
     Seed,
     TranslationError,
     seed_name_to_cmssw,
+    seed_name_to_cmssw_path,
 )
 
 CONDITIONS = {
@@ -89,6 +90,7 @@ def seed_to_cmssw(seed: Seed, mapping: ObjectMapping) -> str:
     if n_legs not in CONDITIONS:
         raise TranslationError(f"{n_legs} legs, P2GT conditions support 1-4")
     module = seed_name_to_cmssw(seed.name)
+    path = seed_name_to_cmssw_path(seed.name)
     indent = "    "
     lines = [f"{module} = {CONDITIONS[n_legs]}.clone("]
     if n_legs == 1:
@@ -103,8 +105,8 @@ def seed_to_cmssw(seed: Seed, mapping: ObjectMapping) -> str:
         elif params:
             lines += _block(f"correl{i}{j}", params, indent)
     lines.append(")")
-    lines.append(f"p{module} = cms.Path({module})")
-    lines.append(f'algorithms.append(cms.PSet(expression = cms.string("p{module}")))')
+    lines.append(f"{path} = cms.Path({module})")
+    lines.append(f'algorithms.append(cms.PSet(expression = cms.string("{path}")))')
     return "\n".join(lines) + "\n"
 
 

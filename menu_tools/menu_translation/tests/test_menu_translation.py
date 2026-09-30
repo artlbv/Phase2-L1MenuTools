@@ -133,6 +133,15 @@ def test_seed_to_cmssw():
         assert fragment in text
 
 
+def test_seed_to_cmssw_module_label_has_no_underscore():
+    """A CMSSW module label must not contain '_'; the path name keeps the seed name."""
+    seed, _ = seed_from_yaml("L1_Double_TkMu", DIMUON_YAML, PV)
+    text = seed_to_cmssw(seed, MAPPING)
+    assert text.startswith("DoubleTkMu = l1tGTDoubleObjectCond.clone(")
+    assert "pDouble_TkMu = cms.Path(DoubleTkMu)" in text
+    assert 'cms.string("pDouble_TkMu")' in text
+
+
 def test_seed_to_cmssw_sums():
     ht = Seed("L1_HT", [Leg("L1puppiJetSC4sums:HT", Threshold(450.0))])
     mht = Seed("L1_MHT", [Leg("L1puppiJetSC4sums:MHT", Threshold(135.5))])

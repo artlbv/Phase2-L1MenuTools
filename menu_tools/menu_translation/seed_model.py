@@ -83,9 +83,24 @@ class Seed:
         cuts[cut] = value
 
 
-def seed_name_to_cmssw(name: str) -> str:
-    """MenuTools seed name -> CMSSW condition (module) name: `L1_X` -> `X`"""
+def _strip_l1_prefix(name: str) -> str:
     return name[3:] if name.startswith("L1_") else name
+
+
+def seed_name_to_cmssw(name: str) -> str:
+    """MenuTools seed name -> CMSSW condition (module) label: `L1_A_B` -> `AB`
+
+    A CMSSW module label must not contain an underscore, while a path name may,
+    so the underscores are dropped here and kept by seed_name_to_cmssw_path().
+    This is the convention of the hand-written step1_2024 menu, e.g.
+    `pDoubleTkMuon_OS_Er1p5_Dr1p4 = cms.Path(DoubleTkMuonOSEr1p5Dr1p4)`.
+    """
+    return _strip_l1_prefix(name).replace("_", "")
+
+
+def seed_name_to_cmssw_path(name: str) -> str:
+    """MenuTools seed name -> CMSSW path name: `L1_X` -> `pX` (inverse of cmssw_path_to_seed_name)"""
+    return "p" + _strip_l1_prefix(name)
 
 
 def cmssw_path_to_seed_name(path: str) -> str:
