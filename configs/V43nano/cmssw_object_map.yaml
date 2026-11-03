@@ -1,0 +1,37 @@
+# MenuTools object key <-> CMSSW P2GT object definition
+# (L1Trigger/Configuration/python/Phase2GTMenus/SeedDefinitions/step1_2024/l1tGTMenuObjects_cff.py)
+# used by menu_tools.menu_translation. Object cuts are NOT translated: an entry
+# states that the two definitions are meant to be the same object. Known
+# differences are noted below; keep both sides in sync.
+#
+#   cmssw_object: the CMSSW object PSet the seeds reference (object = gt_ref(...))
+#   ptScaling:    CMSSW scaling PSet, only if it differs from the object's default
+#   threshold:    pt (default) or scalarSumPt (HT)
+
+primary_vertex: "L1PV:default"
+
+"L1gmtTkMuon:VLoose": l1tGTtkMuonVLoose
+"L1gmtTkMuon:Loose": l1tGTtkMuonLoose
+
+# NB: L1puppiJetSC4:PtGe25 has |eta| < 7, l1tGTsc4Jet |eta| < 2.4
+"L1puppiJetSC4:PtGe25": l1tGTsc4Jet
+"L1puppiExtJetSC4:default": l1tGTsc4Jet_er5
+
+"L1nnPuppiTau:default": l1tGTnnTau
+
+"L1puppiJetSC4sums:HT":
+  cmssw_object: l1tGTHtSum
+  threshold: scalarSumPt
+"L1puppiJetSC4sums:MHT":
+  cmssw_object: l1tGTHtSum
+  ptScaling: l1tGTScaling_CL2HtSum_MHT
+"L1puppiMET:default": l1tGTEtSum
+
+"L1tkElectron:NoIso:inclusive": l1tGTtkElectron
+# NB: no NoIsoLowPt ID defined in the MenuTools objects yet
+"L1tkElectron:NoIsoLowPt:inclusive": l1tGTtkElectronLowPt
+"L1tkElectron:Iso:inclusive": l1tGTtkIsoElectron
+
+# EG seeds: CL2 photons with the L1EG scaling in CMSSW
+"L1EG:default:inclusive": l1tGTtkPhoton
+"L1tkPhoton:Iso": l1tGTtkIsoPhoton
