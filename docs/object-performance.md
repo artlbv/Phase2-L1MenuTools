@@ -491,6 +491,32 @@
       # pileup_version: V50nano_170X1026PU
   ```
 
+  **Double-object and seeded rates.** Three options of the event-level quantities (for
+  `multiplicity`, e.g. rates vs threshold in minimum bias):
+
+  ```yaml
+      min_objects: 2                   # event_fraction: events with >= 2 objects (default 1)
+      seed:                            # also each listed object ANDed with a per-event bit
+        bit: L1_pDoublePuppiTau52_52_final   # field of <v>_<sample>_<record>.parquet
+        # record: L1                   # default: the bit's prefix (L1 / HLT)
+        label: "L1 pDoublePuppiTau52_52"
+        objects: [hltJetTauTagTEST:BDT1kHz]  # default: all test objects
+      rate_lines: [1]                  # kHz (needs `rate`)
+      # rate_line_step: 0.5            # GeV
+  ```
+
+  `min_objects` counts events with at least that many objects above threshold, without any
+  ΔR between them. With `seed`, each listed object gets a second curve `<key>+seed` (same colour,
+  dashed, open markers) that keeps only the events in which the bit fired, e.g. an HLT object
+  ANDed with the L1 seed of its path; the bit alone is drawn as a horizontal line. Seeded curves
+  are made for the event-level quantities only (vs threshold, vs pileup). With `rate`, the
+  threshold-scan JSON also gives the 68% Garwood interval (`garwood_lo`, `garwood_hi`, kHz)
+  from the event counts `num`, and `rate_lines` draws each rate and stores, per curve under
+  `at_rate`, the lowest threshold on a `rate_line_step` grid with rate ≤ line (`threshold`, `n`,
+  `rate`, Garwood interval; `at_scan_start` if the scan starts below the line). Example:
+  `configs/V50nano/object_performance/test_tautag/test_tautag_rates.yaml`. Curves take their
+  colour from the 10-colour list by test object (the CMS style alone cycles 6).
+
   **Pileup.** The `pu` binning reads `<v>_<sample>_Pileup.parquet` from `pileup_version` if given,
   else from the plot version `<v>`, else from `<v>PU` (e.g. the row-aligned `V50nano_170X1026PU`
   cache next to `V50nano_170X1026`); the event count must match. Without it the `pu` plots are

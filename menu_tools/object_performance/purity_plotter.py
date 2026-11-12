@@ -8,6 +8,7 @@ outputs/<version>/object_performance/purity/:
   <plot>_<version>.yaml
       copy of the plot config
 """
+
 import json
 import math
 import os
@@ -18,7 +19,7 @@ import mplhep as hep
 import numpy as np
 import yaml
 
-from menu_tools.object_performance.plotter import Plotter
+from menu_tools.object_performance.plotter import Plotter, colors
 from menu_tools.object_performance.purity_collection import PurityCollection
 from menu_tools.utils import utils
 from menu_tools.utils.objects import Object, trigger_level
@@ -57,11 +58,31 @@ class PurityPlotter(Plotter):
         return os.path.join("outputs", self.version, "object_performance", "purity")
 
     def _label(self, obj_key: str) -> str:
+        if obj_key.endswith("+seed"):
+            return f"{self._label(obj_key.removesuffix('+seed'))} $\\wedge$ " + (
+                self.pur_cfg.seed_label
+            )
         label = Object(obj_key, version=self.cfg.version_for_objects).plot_label
         rng = obj_key.split(":")[2] if obj_key.count(":") >= 2 else "inclusive"
         return label if rng == "inclusive" else f"{label} ({rng})"
 
     # ---- labels --------------------------------------------------------------------
+
+    def _style(self, key: str) -> dict:
+        """Colour by test object (explicitly from the 10-colour list: the mplhep CMS
+        style resets the colour cycle to 6 colours); the seeded copy of an object has
+        its colour, a dashed line and open markers.
+        """
+        base = key.removesuffix("+seed")
+        plain = [k for k in self.collection.objects if not k.endswith("+seed")]
+        style = {"color": colors[plain.index(base) % len(colors)]}
+        if key.endswith("+seed"):
+            style.update({"linestyle": "--", "markerfacecolor": "none"})
+        return style
+
+    @property
+    def _n_obj(self) -> str:
+        return f"$\\geq${self.pur_cfg.min_objects}"
 
     def _ylabel(self, quantity: str) -> str:
         lvl, rate = self.lvl, self.pur_cfg.rate
@@ -88,9 +109,9 @@ class PurityPlotter(Plotter):
                 else f"{lvl} obj."
             )
             return (
-                f"Rate (events with $\\geq$1 {what})"
+                f"Rate (events with {self._n_obj} {what})"
                 if rate
-                else f"Events with $\\geq$1 {what}"
+                else f"Events with {self._n_obj} {what}"
             ) + unit
         raise ValueError(quantity)
 
@@ -122,14 +143,20 @@ class PurityPlotter(Plotter):
         if quantity == "event_fraction" and self.pur_cfg.mode == "fake_rate":
             scale = r" $\times$ 31038 kHz" if self.pur_cfg.rate else ""
             return (
-                f"Fraction of events with $\\geq$1 unmatched {lvl} object{scale}; "
+                f"Fraction of events with {self._n_obj} unmatched {lvl} "
+                f"object{scale}; "
                 f"no {gen} within $\\Delta R$ < {dr}"
             )
         if quantity == "event_fraction":
             scale = r" $\times$ 31038 kHz" if self.pur_cfg.rate else ""
+            seed = (
+                f"; dashed: $\\wedge$ {self.pur_cfg.seed_label} (per-event bit)"
+                if self.pur_cfg.seed
+                else ""
+            )
             return (
-                f"Fraction of events with $\\geq$1 {lvl} object above "
-                f"threshold{scale} (no gen matching)"
+                f"Fraction of events with {self._n_obj} {lvl} objects above "
+                f"threshold{scale} (no gen matching){seed}"
             )
         return f"All {lvl} objects after ID / $\\eta$ cuts (no gen matching)"
 
@@ -169,10 +196,17 @@ class PurityPlotter(Plotter):
             "leading_only": self.pur_cfg.leading_only,
             "rate_kHz": self.pur_cfg.rate and plot["quantity"] == "event_fraction",
             "n_events": self.collection.n_events,
+            "min_objects": self.pur_cfg.min_objects,
+            "seed": (
+                dict(self.pur_cfg.seed, **(self.collection.seed_rate or {}))
+                if self.pur_cfg.seed
+                else None
+            ),
+            "rate_lines_kHz": self.pur_cfg.rate_lines or None,
             "pu_variable": self.pur_cfg.pu_variable if plot["vs"] == "pu" else None,
-            "pileup_source": self.collection.pileup_source
-            if plot["vs"] == "pu"
-            else None,
+            "pileup_source": (
+                self.collection.pileup_source if plot["vs"] == "pu" else None
+            ),
         }
         for key, s in plot["series"].items():
             entry = {
@@ -184,11 +218,12 @@ class PurityPlotter(Plotter):
             else:
                 entry["edges"] = edges.tolist()
                 entry["xbins"] = (0.5 * (edges[1:] + edges[:-1])).tolist()
-            for k in ("y", "err_lo", "err_hi"):
-                entry[k] = _clean(s[k])
+            for k in ("y", "err_lo", "err_hi", "garwood_lo", "garwood_hi"):
+                if k in s:
+                    entry[k] = _clean(s[k])
             entry["num"] = [int(v) for v in s["num"]]
             entry["den"] = [int(v) for v in s["den"]]
-            for k in ("integral", "integral_n", "fit"):
+            for k in ("integral", "integral_n", "fit", "at_rate"):
                 if k in s:
                     entry[k] = s[k]
             out[key] = entry
@@ -225,7 +260,12 @@ class PurityPlotter(Plotter):
                 label += f" (slope {s['fit']['slope']:.2g}/PU)"
             y = np.asarray(s["y"], dtype=float)
             ax.errorbar(
-                x, y, yerr=[s["err_lo"], s["err_hi"]], xerr=xerr, label=label, **kwargs
+                x,
+                y,
+                yerr=[s["err_lo"], s["err_hi"]],
+                xerr=xerr,
+                label=label,
+                **{**kwargs, **self._style(key)},
             )
             if s.get("fit") and vs == "pu":
                 xx = np.array([edges[0], edges[-1]])
@@ -237,6 +277,27 @@ class PurityPlotter(Plotter):
                     lw=1,
                 )
 
+        is_rate = quantity == "event_fraction" and self.pur_cfg.rate
+        if is_rate and (seed := self.collection.seed_rate):
+            ax.axhline(
+                seed["y"],
+                ls="-.",
+                c="k",
+                lw=1,
+                label=f"{self.pur_cfg.seed_label} alone: {seed['y']:.3g} kHz "
+                f"({seed['n']} events)",
+            )
+        if is_rate:
+            for line in self.pur_cfg.rate_lines:
+                ax.axhline(line, ls=":", c="k", lw=1.2)
+                ax.text(
+                    edges[-1],
+                    line * 1.08,
+                    f"{line:g} kHz",
+                    ha="right",
+                    va="bottom",
+                    fontsize=14,
+                )
         ax.set_xlabel(self._xlabel(vs))
         ax.set_ylabel(self._ylabel(quantity))
         ax.set_xlim(
@@ -257,15 +318,25 @@ class PurityPlotter(Plotter):
             if len(y) and vs == "threshold":
                 # threshold scans span orders of magnitude
                 ax.set_yscale("log")
-                ax.set_ylim(y.min() / 3, y_hi.max() * 30)
+                lines = (
+                    [self.collection.seed_rate["y"]]
+                    if self.collection.seed_rate
+                    else []
+                )
+                if quantity == "event_fraction" and self.pur_cfg.rate:
+                    lines += self.pur_cfg.rate_lines
+                ymin = min([y.min()] + lines)
+                ax.set_ylim(ymin / 3, max([y_hi.max()] + lines) * 30)
             elif len(y_hi):
                 ax.set_ylim(0, y_hi.max() * 1.45)
-        # The definition takes the top line of the axes, the legend goes below it.
+        # The definition takes the top line of the axes, the legend goes below it; with
+        # many curves (e.g. with `seed`) below the axes.
+        many = len(ax.get_legend_handles_labels()[0]) > 8
         ax.legend(
-            loc="upper right",
-            bbox_to_anchor=(1, 0.95),
+            loc="upper left" if many else "upper right",
+            bbox_to_anchor=(0, -0.17) if many else (1, 0.95),
             frameon=False,
-            fontsize=16,
+            fontsize=14 if many else 16,
             title=self._context(plot),
             title_fontsize=16,
         )

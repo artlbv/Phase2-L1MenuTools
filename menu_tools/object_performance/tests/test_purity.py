@@ -4,6 +4,7 @@ trigger objects per event (parquet files in tmp_path, constants.CACHE_DIR monkey
 
 Run from the repository root (object definitions are read from configs/V50nano/objects).
 """
+
 import awkward as ak
 import numpy as np
 import pytest
@@ -242,6 +243,55 @@ def test_multiplicity_minbias_rate(cache, events, monkeypatch):
             (n > 0).mean() * constants.RATE_NORM_FACTOR
         )
     assert all(o["matched"] is None for o in coll.objects.values())
+
+
+def test_multiplicity_min_objects_seed(cache, events):
+    """min_objects: events with >= 2 objects; seed: the same ANDed with a per-event bit
+    of the L1 record; rate_lines: the lowest threshold at which the rate is below."""
+    _, trg, _, _ = events
+    bit = np.arange(N_EVENTS) % 3 == 0
+    pts = ak.Array(trg["pt"])
+    scale = constants.RATE_NORM_FACTOR / N_EVENTS
+    # events with >= 2 objects above each threshold of the 1-GeV grid; the rate line
+    # is the rate at 12 GeV, so the first threshold at or below it is <= 12 GeV
+    n_at = [(ak.to_numpy(ak.sum(pts >= t, axis=1)) >= 2).sum() for t in range(26)]
+    line = float(n_at[12] * scale)
+    ak.to_parquet(
+        ak.zip({"L1_pTestSeed_final": bit, "L1_other_final": ~bit}),
+        str(cache / VERSION / f"{VERSION}_{SAMPLE}_L1.parquet"),
+    )
+    cfg = _cfg(
+        "multiplicity",
+        rate=True,
+        min_objects=2,
+        seed={"bit": "L1_pTestSeed_final", "label": "test seed"},
+        rate_lines=[line],
+        rate_line_step=1,
+    )
+    coll = PurityCollection(cfg, "synthetic_seed")
+    coll.create()
+    key = next(iter(coll.objects))
+    plot = next(
+        p
+        for p in coll.plots
+        if p["quantity"] == "event_fraction" and p["vs"] == "threshold"
+    )
+    s, s_seed = plot["series"][key], plot["series"][f"{key}+seed"]
+    for i_thr, thr in enumerate([0, 10, 25]):
+        n = ak.to_numpy(ak.sum(pts >= thr, axis=1))
+        assert s["num"][i_thr] == (n >= 2).sum()
+        assert s_seed["num"][i_thr] == ((n >= 2) & bit).sum()
+        assert s_seed["y"][i_thr] == pytest.approx(((n >= 2) & bit).sum() * scale)
+        assert s_seed["garwood_lo"][i_thr] < s_seed["y"][i_thr]
+        assert s_seed["garwood_hi"][i_thr] > s_seed["y"][i_thr]
+    assert coll.seed_rate["n"] == bit.sum()
+    # rate line: first threshold on the 1-GeV grid with rate <= the line
+    at = s["at_rate"][f"{line:g}"]
+    first = next(t for t, n in enumerate(n_at) if n * scale <= line)
+    assert first <= 12
+    assert at["threshold"] == first and at["n"] == n_at[first]
+    # object-level quantities do not include the seeded copy
+    assert all(len(p["series"]) == 1 for p in coll.plots if p["vs"] == "eta")
 
 
 def test_plotter_outputs(cache, tmp_path, monkeypatch):
