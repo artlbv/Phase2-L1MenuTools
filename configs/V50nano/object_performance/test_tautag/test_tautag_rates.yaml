@@ -1,0 +1,79 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# (the cache version holding the tagger object; outputs go to outputs/<that version>/).
+# Single- and double-object rate vs online pT threshold in MinBiasF1000 (159,920 events,
+# 1 event = 0.194 kHz), `purity:` block in multiplicity mode (docs/object-performance.md).
+# hltHpsPFTau is stored only in events where an L1 tau seed fired, so its rates already include
+# an L1 seed; the HLT-jet candidates exist in every event. Each tagger WP (and HPS Medium) is
+# therefore also shown ANDed with the per-event bit L1_pDoublePuppiTau52_52_final (dashed), the
+# L1 seed of HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1: that curve is comparable to HPS.
+# The double-object rate (min_objects: 2) is >= 2 objects above threshold, without the dR > 0.5
+# between the legs of the HLT path and of the report's emulation.
+# |eta| < 2.1 for the HLT objects (in the ids), |eta| < 2.172 for L1nnPuppiTau:default (the
+# acceptance of the L1 seed). The single-object rates alone are also in
+# TESTTausMultiplicityMinBiasF1000 (test_tautag_purity.yaml).
+
+TESTTauRates_BDT:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: &bdt_objects
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:BDTEff90: "pt"
+    hltJetTauTagTEST:BDTEff80: "pt"
+  purity: &rates
+    mode: multiplicity
+    vs:
+      threshold: {min: 10, max: 120, step: 5}
+    min_objects: 1
+    seed: &seed_bdt
+      bit: L1_pDoublePuppiTau52_52_final
+      label: "L1 pDoublePuppiTau52_52"
+      objects:
+        - hltHpsPFTau:MediumDeepTau
+        - hltJetTauTagTEST:BDT1kHz
+        - hltJetTauTagTEST:BDTEff90
+        - hltJetTauTagTEST:BDTEff80
+    rate_lines: [1]               # kHz
+
+TESTTauRates_DS:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: &ds_objects
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:DSEff90: "pt"
+    hltJetTauTagTEST:DSEff80: "pt"
+  purity:
+    <<: *rates
+    seed: &seed_ds
+      bit: L1_pDoublePuppiTau52_52_final
+      label: "L1 pDoublePuppiTau52_52"
+      objects:
+        - hltHpsPFTau:MediumDeepTau
+        - hltJetTauTagTEST:DS1kHz
+        - hltJetTauTagTEST:DSEff90
+        - hltJetTauTagTEST:DSEff80
+
+TESTDiTauRates_BDT:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: *bdt_objects
+  purity:
+    <<: *rates
+    min_objects: 2
+    seed: *seed_bdt
+
+TESTDiTauRates_DS:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: *ds_objects
+  purity:
+    <<: *rates
+    min_objects: 2
+    seed: *seed_ds
