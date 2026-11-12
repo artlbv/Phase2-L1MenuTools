@@ -1,0 +1,79 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT AK4 PUPPI jets (hlt-tau-pu study,
+# topo-hackathon-2026 results/hlt_tau_pu/README.md). Not an HLT object of any menu.
+# Object built by menu_tools/caching/make_hlt_jet_tautag_test.py, only in the cache version
+# V50nano_170pre6HLT_TESTtautag (samples HHTo2B2Tau, DYLL_M50, MinBiasF1000); plots in
+# configs/V50nano/object_performance/test_tautag/ (see the README there).
+#
+# Candidates: hltAK4PuppiJet with JEC-corrected pT > 20 GeV, |eta| < 2.5 (`scored` == 1).
+#   pt       = pT^sig, the tau energy estimate (|sum p| of the PF candidates within dR < 0.1
+#              of the axis; median response to the visible tau pT 1.00 in HH), on which the
+#              report's double-tau trigger emulation cuts (pT^sig > 35 GeV);
+#   eta, phi = the axis (leading charged PF candidate within 0.2 of the jet axis).
+#   Unscored jets: pt = -1, scores -1 (no id below passes them).
+# Scores (out-of-fold, two-fold cross-fit by file parity):
+#   bdt = BDT with all features (`bdt_full`);
+#   ds  = 3-class DeepSets with jet variables (`mc_jv`), trigger score p_tau / (p_tau + p_MB);
+#   dsPhs = its hard-scatter-jet probability.
+# Working points:
+#   *1kHz: the cut of the report's double-tau trigger emulation at the rate of
+#     HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1 (~1 kHz, 64 / 61 minimum-bias events,
+#     L1_pDoublePuppiTau52_52 AND >= 2 candidates pT^sig > 35, |eta| < 2.1, dR > 0.5).
+#     Per-candidate efficiency on genuine HH tau_h with pT^sig > 20 GeV: 0.954 (BDT),
+#     0.973 (DeepSets).
+#   *Eff80 / *Eff90: 80% / 90% per-candidate efficiency for genuine HH tau_h (skim label 0,
+#     GenVisTau within dR < 0.3) with pT^sig > 20 GeV. Minimum-bias jet fake rate (files
+#     0-999, pT^sig > 20): BDT 1.6% / 5.8%, DeepSets 1.7% / 6.1%.
+#     (Cross-check with the report, cuts at 80% / 90% of HH + DY tau: BDT 3.18% / 8.5%,
+#     DeepSets 2.89% / 7.9%, identical to results/hlt_tau_pu sections 4 and 10.2.)
+# All ids cut |eta| < 2.1, as the HLT tau paths and the report's trigger.
+
+hltJetTauTagTEST:
+  label: "TEST HLT-jet tau cand."
+  match_dR: 0.3
+  eta_ranges:
+    inclusive: [0, 7]
+    barrel: [0, 1.5]
+    endcap: [1.5, 2.4]
+  ids:
+    noID:
+      label: "TEST HLT-jet tau cand. ($p_T^{sig}$), no ID"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{scored} == 1"
+    BDT1kHz:
+      label: "TEST HLT-jet BDT > 0.363 (~1 kHz di-tau)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.363"
+    DS1kHz:
+      label: "TEST HLT-jet DeepSets > 0.424 (~1 kHz di-tau)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.424"
+    BDTEff90:
+      label: "TEST HLT-jet BDT > 0.682 (90% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.682"
+    BDTEff80:
+      label: "TEST HLT-jet BDT > 0.901 (80% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.901"
+    DSEff90:
+      label: "TEST HLT-jet DeepSets > 0.866 (90% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.866"
+    DSEff80:
+      label: "TEST HLT-jet DeepSets > 0.970 (80% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.970"

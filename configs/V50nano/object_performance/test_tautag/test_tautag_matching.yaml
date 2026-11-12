@@ -1,0 +1,88 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# (the cache version holding the tagger object; outputs go to outputs/<that version>/).
+# hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
+# the HLT-jet taggers are not (the jets are stored in every event).
+# Matching efficiency vs gen visible tau pT (GenVisTau, |eta| < 2.1), HH -> bbtautau.
+
+TESTTauMatchingBarrel:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "abs({eta}) < 1.5"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching Efficiency (barrel) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 6
+
+TESTTauMatchingEndcap:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "abs({eta}) > 1.5"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching Efficiency (endcap) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 6
+
+# All tagger working points (1 kHz di-tau, 90% / 80% tau_h efficiency), |eta| < 2.1
+TESTTauMatchingWPs:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:BDTEff90: "pt"
+    hltJetTauTagTEST:BDTEff80: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:DSEff90: "pt"
+    hltJetTauTagTEST:DSEff80: "pt"
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching Efficiency ($|\\eta| < 2.1$) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 6

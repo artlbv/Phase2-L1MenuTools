@@ -1,0 +1,74 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# (the cache version holding the tagger object; outputs go to outputs/<that version>/).
+# hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
+# the HLT-jet taggers are not (the jets are stored in every event).
+# Purity / fake rate (HH -> bbtautau; leptonic tau decays and jets count as fakes) and the
+# single-object rate vs threshold in minimum bias (`purity:` block, docs/object-performance.md).
+# 7 objects (the colour cycle has 7). hltHpsPFTau exists only in events with an L1 tau seed, so
+# its single-object rate includes the L1 seed; the HLT-jet candidates do not.
+# Minimum bias: sample MinBiasF1000 = the 159,920 events of minimum-bias files 0-999, the only
+# minimum-bias files in which every event has tagger scores (files >= 1000 were scored only in
+# L1_pDoublePuppiTau52_52 events). 1 event = 31,039 kHz / 159,920 = 0.194 kHz. The tagger
+# scores of these files are out-of-fold, but these files were the minimum-bias training sample
+# of the other fold.
+
+TESTTausPurity:
+  sample: HHTo2B2Tau
+  version: V50nano
+  test_objects:
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:BDTEff90: "pt"
+    hltJetTauTagTEST:DSEff90: "pt"
+  purity:
+    mode: purity
+    reference_gen: &gen_tau
+      object: GenVisTau
+      label: "gen vis. $\\tau_h$"
+    vs:
+      pt: {edges: [0, 10, 20, 30, 40, 50, 60, 80, 100, 150, 200]}
+      eta: {min: -2.4, max: 2.4, step: 0.2}
+      pu: &pu_bins {edges: [140, 170, 185, 195, 205, 215, 230, 260]}
+    thresholds: [35, 50]
+
+TESTTausFakeRate:
+  sample: HHTo2B2Tau
+  version: V50nano
+  test_objects:
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:BDTEff90: "pt"
+    hltJetTauTagTEST:DSEff90: "pt"
+  purity:
+    mode: fake_rate
+    reference_gen: *gen_tau
+    vs:
+      pu: *pu_bins
+      threshold: &thr_tau {min: 0, max: 150, step: 5}
+    thresholds: [35, 50]
+
+TESTTausMultiplicityMinBiasF1000:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects:
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:BDTEff90: "pt"
+    hltJetTauTagTEST:DSEff90: "pt"
+  purity:
+    mode: multiplicity
+    vs:
+      pu: *pu_bins
+      threshold: *thr_tau
+    thresholds: [35, 50]
