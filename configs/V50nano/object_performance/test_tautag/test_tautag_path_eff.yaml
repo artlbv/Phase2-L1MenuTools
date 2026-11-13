@@ -1,0 +1,390 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# Path level, HH -> bbtautau (path_efficiency `paths:` map, as path_eff_taus_compare.yaml):
+# per-event efficiency of the HLT double-tau paths with the L1 seed L1_pDoublePuppiTau52_52
+# (HPS + DeepTau HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1; ParticleTransformer on AK4 PUPPI jets
+# HLT_DoubleMediumPFPuppiParTTauh30_eta2p1) and of emulated tagger paths HLT_TEST_* = the L1 seed
+# AND >= 2 tagger candidates with |eta| < 2.1, pT > thr, score > cut, dR > 0.5 between two of them
+# (per-event bits in <version>_<sample>_HLTTEST.parquet, written by
+# scripts/test_tautag/emulate_paths.py; cuts and rates in emulated_paths.csv; *Reg: threshold on
+# the DeepSets regressed pT instead of pT^sig).
+# ParTRate_*: cuts at the ParT-path rate (11 of the 2M minimum-bias events) at 30 GeV like ParT.
+# 1kHz_*: the 1 kHz WPs at 35 GeV (26 GeV regressed), compared with DeepTau (66 events).
+# Legend rates: minimum-bias events of the 2M (MinBiasL1Pass, 15.5 Hz each).
+# Every plot is also split by the decay-mode pair of the two leading taus (split_by objects: 2).
+# DY is not used: GenVisTau is not in the TEST DY cache.
+
+TESTDiTauPath_ParTRate_VsSubleadPt:
+  sample: HHTo2B2Tau
+  version: V50nano
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen visible taus, $|\\eta| < 2.1$"
+    rank: 2
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  path_efficiency:
+    paths:
+      ParT:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumPFPuppiParTTauh30_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels:
+          L1: "L1 DoublePuppiTau52_52 (20.28 kHz, 1306 ev.)"
+          L1_and_HLT: "ParT Tauh30 (0.17 kHz, 11 ev.)"
+      BDT_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDT_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.808, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+      BDTReg_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDTReg_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.815, reg. $p_T$ > 30 (0.17 kHz, 11 ev.)"
+      DS_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDS_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.919, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+      DSReg_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSReg_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.934, reg. $p_T$ > 30 (0.17 kHz, 11 ev.)"
+      DSA_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSA_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets $\\alpha$=0.1 > 0.860, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+    plateau_min: 80
+  split_by:
+    field: status
+    objects: 2
+    categories:
+      "1-prong": [0, 1, 2]
+      "3-prong": [10, 11]
+    name: DMpair
+    layout: per_category
+    summary_range: [80, 200]
+  xlabel: "Subleading gen visible tau $p_T$ (GeV)"
+  ylabel: "Efficiency [TEST]"
+  binning:
+    edges: [0, 10, 20, 30, 35, 40, 45, 50, 60, 70, 80, 100, 150, 200]
+
+TESTDiTauPath_ParTRate_VsLeadPt:
+  sample: HHTo2B2Tau
+  version: V50nano
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen visible taus, $|\\eta| < 2.1$"
+    rank: 1
+    min_objects: 2
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  path_efficiency:
+    paths:
+      ParT:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumPFPuppiParTTauh30_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels:
+          L1: "L1 DoublePuppiTau52_52 (20.28 kHz, 1306 ev.)"
+          L1_and_HLT: "ParT Tauh30 (0.17 kHz, 11 ev.)"
+      BDT_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDT_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.808, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+      BDTReg_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDTReg_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.815, reg. $p_T$ > 30 (0.17 kHz, 11 ev.)"
+      DS_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDS_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.919, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+      DSReg_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSReg_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.934, reg. $p_T$ > 30 (0.17 kHz, 11 ev.)"
+      DSA_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSA_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets $\\alpha$=0.1 > 0.860, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+    plateau_min: 0
+  split_by:
+    field: status
+    objects: 2
+    categories:
+      "1-prong": [0, 1, 2]
+      "3-prong": [10, 11]
+    name: DMpair
+    layout: per_category
+  xlabel: "Leading gen visible tau $p_T$ (GeV)"
+  ylabel: "Efficiency [TEST]"
+  binning:
+    edges: [0, 20, 40, 60, 80, 100, 120, 150, 200, 300]
+
+TESTDiTauPath_ParTRate_VsSubleadEta:
+  sample: HHTo2B2Tau
+  version: V50nano
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "abs(eta)"
+    label: "Gen visible taus, $|\\eta| < 2.1$, subl. $p_T > 60$ GeV"
+    rank: 2
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+      event:
+        - "{pt} > 60"
+  path_efficiency:
+    paths:
+      ParT:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumPFPuppiParTTauh30_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels:
+          L1: "L1 DoublePuppiTau52_52 (20.28 kHz, 1306 ev.)"
+          L1_and_HLT: "ParT Tauh30 (0.17 kHz, 11 ev.)"
+      BDT_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDT_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.808, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+      BDTReg_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDTReg_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.815, reg. $p_T$ > 30 (0.17 kHz, 11 ev.)"
+      DS_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDS_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.919, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+      DSReg_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSReg_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.934, reg. $p_T$ > 30 (0.17 kHz, 11 ev.)"
+      DSA_ParT_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSA_ParT_30]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets $\\alpha$=0.1 > 0.860, $p_T^{sig}$ > 30 (0.17 kHz, 11 ev.)"
+    plateau_min: 0
+  split_by:
+    field: status
+    objects: 2
+    categories:
+      "1-prong": [0, 1, 2]
+      "3-prong": [10, 11]
+    name: DMpair
+    layout: per_category
+  xlabel: "Subleading gen visible tau $|\\eta|$"
+  ylabel: "Efficiency [TEST]"
+  binning:
+    edges: [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1]
+
+TESTDiTauPath_1kHz_VsSubleadPt:
+  sample: HHTo2B2Tau
+  version: V50nano
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen visible taus, $|\\eta| < 2.1$"
+    rank: 2
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  path_efficiency:
+    paths:
+      DeepTau:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels:
+          L1: "L1 DoublePuppiTau52_52 (20.28 kHz, 1306 ev.)"
+          L1_and_HLT: "DeepTau HPS35 (1.02 kHz, 66 ev.)"
+      BDT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDT_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.363, $p_T^{sig}$ > 35 (0.99 kHz, 64 ev.)"
+      DS_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDS_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.460, $p_T^{sig}$ > 35 (1.01 kHz, 65 ev.)"
+      DSA_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSA_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets $\\alpha$=0.1 > 0.398, $p_T^{sig}$ > 35 (1.01 kHz, 65 ev.)"
+      DSReg_1kHz_26:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSReg_1kHz_26]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+    plateau_min: 80
+  split_by:
+    field: status
+    objects: 2
+    categories:
+      "1-prong": [0, 1, 2]
+      "3-prong": [10, 11]
+    name: DMpair
+    layout: per_category
+    summary_range: [80, 200]
+  xlabel: "Subleading gen visible tau $p_T$ (GeV)"
+  ylabel: "Efficiency [TEST]"
+  binning:
+    edges: [0, 10, 20, 30, 35, 40, 45, 50, 60, 70, 80, 100, 150, 200]
+
+TESTDiTauPath_1kHz_VsLeadPt:
+  sample: HHTo2B2Tau
+  version: V50nano
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen visible taus, $|\\eta| < 2.1$"
+    rank: 1
+    min_objects: 2
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  path_efficiency:
+    paths:
+      DeepTau:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels:
+          L1: "L1 DoublePuppiTau52_52 (20.28 kHz, 1306 ev.)"
+          L1_and_HLT: "DeepTau HPS35 (1.02 kHz, 66 ev.)"
+      BDT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDT_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.363, $p_T^{sig}$ > 35 (0.99 kHz, 64 ev.)"
+      DS_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDS_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.460, $p_T^{sig}$ > 35 (1.01 kHz, 65 ev.)"
+      DSA_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSA_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets $\\alpha$=0.1 > 0.398, $p_T^{sig}$ > 35 (1.01 kHz, 65 ev.)"
+      DSReg_1kHz_26:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSReg_1kHz_26]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+    plateau_min: 0
+  split_by:
+    field: status
+    objects: 2
+    categories:
+      "1-prong": [0, 1, 2]
+      "3-prong": [10, 11]
+    name: DMpair
+    layout: per_category
+  xlabel: "Leading gen visible tau $p_T$ (GeV)"
+  ylabel: "Efficiency [TEST]"
+  binning:
+    edges: [0, 20, 40, 60, 80, 100, 120, 150, 200, 300]
+
+TESTDiTauPath_1kHz_VsSubleadEta:
+  sample: HHTo2B2Tau
+  version: V50nano
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "abs(eta)"
+    label: "Gen visible taus, $|\\eta| < 2.1$, subl. $p_T > 60$ GeV"
+    rank: 2
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+      event:
+        - "{pt} > 60"
+  path_efficiency:
+    paths:
+      DeepTau:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels:
+          L1: "L1 DoublePuppiTau52_52 (20.28 kHz, 1306 ev.)"
+          L1_and_HLT: "DeepTau HPS35 (1.02 kHz, 66 ev.)"
+      BDT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleBDT_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST BDT > 0.363, $p_T^{sig}$ > 35 (0.99 kHz, 64 ev.)"
+      DS_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDS_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.460, $p_T^{sig}$ > 35 (1.01 kHz, 65 ev.)"
+      DSA_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSA_1kHz_35]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets $\\alpha$=0.1 > 0.398, $p_T^{sig}$ > 35 (1.01 kHz, 65 ev.)"
+      DSReg_1kHz_26:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_TEST_DoubleDSReg_1kHz_26]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+    plateau_min: 0
+  split_by:
+    field: status
+    objects: 2
+    categories:
+      "1-prong": [0, 1, 2]
+      "3-prong": [10, 11]
+    name: DMpair
+    layout: per_category
+  xlabel: "Subleading gen visible tau $|\\eta|$"
+  ylabel: "Efficiency [TEST]"
+  binning:
+    edges: [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1]

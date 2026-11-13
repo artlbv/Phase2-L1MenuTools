@@ -115,8 +115,11 @@ ABS_RE = re.compile(r"^abs\((\w+)\)$")
 
 def _bit_file(bit: str) -> str:
     """Name of the cached record holding a bit: `L1` for L1_* seeds, `HLT` for HLT_*
-    paths.
+    paths, `HLTTEST` for HLT_TEST_* (emulated TEST paths, not in any menu, e.g.
+    scripts/test_tautag/emulate_paths.py).
     """
+    if bit.startswith("HLT_TEST_"):
+        return "HLTTEST"
     for prefix in ("L1", "HLT"):
         if bit.startswith(prefix + "_"):
             return prefix

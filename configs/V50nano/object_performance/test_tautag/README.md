@@ -15,7 +15,8 @@ part of the official configs. Branch `ar26_tautag_test`. It is not part of the u
   The two HLT paths are drawn as reference rates. New path-level comparison of the HLT paths and
   the emulated tagger paths.
 - Menu-tools options used here: `purity.norm_events`, `purity.seed.only`, `purity.reference_bits`
-  (docs/object-performance.md).
+  (docs/object-performance.md), and in `path_efficiency.py` the bits `HLT_TEST_*` are read from the
+  TEST-only record `HLTTEST` (the emulated tagger paths).
 
 ## Taggers and objects
 
@@ -82,8 +83,8 @@ sends all outputs to `outputs/V50nano_170pre6HLT_TESTtautag/`, apart from the of
     (`<version>_MinBiasL1Pass_norm.json` in the cache). With `seed.only: true` only the ∧ seed
     curves are drawn: the "alone" rates are not defined on this subset.
 - **HLTTEST records** (`<version>_<sample>_HLTTEST.parquet`, from
-  `scripts/test_tautag/emulate_paths.py`): per-event bits of the emulated tagger paths, for HH,
-  MinBiasF1000 and MinBiasL1Pass.
+  `scripts/test_tautag/emulate_paths.py`): per-event bits `HLT_TEST_*` of the emulated tagger
+  paths, row-aligned with the other records, for HH, MinBiasF1000 and MinBiasL1Pass.
 - **TT** is not in the TEST cache. The menu-tools TT sample is tt̄ → 2ℓ2ν; the tagger scored
   inclusive tt̄, which is a different sample.
 
@@ -171,38 +172,55 @@ reproduces the WP definitions within an event (64 / 65 / 11 events at 35 GeV).
 
 ## Path level (HLT paths and emulated tagger paths)
 
-`test_tautag_path_eff.yaml`, plotted by `scripts/test_tautag/path_eff_overlay.py` (TEST-only
-overlay on top of the stock `path_efficiency` machinery, not changing it):
-`object_performance/path_efficiency/TESTDiTauPathEff_{1kHz,ParTRate}_overlay_*`.
-- The plots show the HH → bbττ per-event efficiency vs the subleading gen visible τ pT
-  (|η| < 2.1), with no matching.
-- Emulated path: L1 seed ∧ ≥ 2 tagger candidates with |η| < 2.1, score above the WP and
-  pT^sig > 35 GeV (regressed pT > 26 GeV for `DSReg1kHz`), with ΔR > 0.5 between two of them.
-  These are the `HLTTEST_*` bits.
-- Minimum-bias counts of the emulated paths on MinBiasL1Pass: `BDT1kHz` 64, `DS1kHz` 65 (the
-  rounded cut 0.460 instead of 0.4602), `DSA1kHz` 65, `DSReg1kHz` 64, `BDTParT` 11, `DSParT` 11.
+`test_tautag_path_eff.yaml` (stock `path_efficiency` with the `paths:` map, as
+`path_eff_taus_compare.yaml`): `object_performance/path_efficiency/TESTDiTauPath_{ParTRate,1kHz}_*`.
+- HH → bbττ per-event efficiency, no matching, vs the subleading gen visible τ pT, the leading
+  τ pT (events with two τ in |η| < 2.1) and the subleading |η| (subleading pT > 60 GeV). Each plot
+  is also split by the decay-mode pair of the two leading τ (`_DMpair_*`).
+- **Emulated paths** `HLT_TEST_Double<tagger>[Reg]_<WP>_<thr>` = L1 seed ∧ ≥ 2 tagger candidates
+  with |η| < 2.1, pT > thr, score > cut, and ΔR > 0.5 between two of them (as the report's
+  emulation and the HLT double-τ paths). `Reg`: threshold on the regressed pT instead of pT^sig.
+  Per-event bits in `<version>_<sample>_HLTTEST.parquet` (HH, MinBiasF1000, MinBiasL1Pass), written
+  by `scripts/test_tautag/emulate_paths.py`; `path_efficiency.py` reads `HLT_TEST_*` bits from that
+  record. Cuts, counts and rates: `emulated_paths.csv`.
+  - `*_ParT_30`: cut chosen so that at most 11 minimum-bias events of the 2M pass (the ParT
+    path's count), at 30 GeV like ParT.
+  - `*_1kHz_35`: the 1 kHz WPs at 35 GeV; `DSReg_1kHz_26`: ds > 0.607, regressed pT > 26 GeV.
+- DY is not shown: the TEST DY cache has no GenVisTau.
 
-| path (minimum-bias events of 2M) | subleading gen τ pT ≥ 80 GeV | 40–45 GeV | 45–50 GeV |
-|---|---|---|---|
-| L1 seed `pDoublePuppiTau52_52` (1306) | 0.855 (802/938) | 0.759 | 0.826 |
-| HLT DeepTau HPS35 (66, 1.02 kHz) | 0.710 (666/938) | 0.517 | 0.604 |
-| HLT ParT Tauh30 (11, 0.17 kHz) | 0.771 (723/938) | 0.611 | 0.682 |
-| TEST `BDT1kHz` (64) | 0.838 | 0.687 | 0.761 |
-| TEST `DS1kHz` (65) | 0.839 (787/938) | 0.703 | 0.787 |
-| TEST `DSA1kHz` (65) | 0.836 | 0.700 | 0.785 |
-| TEST `DSReg1kHz`, reg. pT > 26 (64) | 0.837 | 0.690 | 0.767 |
-| TEST `BDTParT` (11) | 0.800 (750/938) | 0.596 | 0.657 |
-| TEST `DSParT` (11) | 0.792 (743/938) | 0.583 | 0.664 |
+Rates: minimum-bias events of the 2M (MinBiasL1Pass), 1 event = 15.5 Hz, 68% Garwood intervals.
+Plateau: subleading gen τ pT ≥ 80 GeV (938 events). All: every event with two gen visible τ in
+|η| < 2.1 (17,690 events, from the leading-pT plot).
+
+| path | cut | min. bias ev. (kHz) | plateau ≥ 80 | 40–45 GeV | 45–50 GeV | all |
+|---|---|---|---|---|---|---|
+| L1 seed `pDoublePuppiTau52_52` | | 1306 (20.3) | 0.855 | 0.759 | 0.826 | 0.484 |
+| HLT DeepTau HPS35 | | 66 (1.02 [0.90, 1.17]) | 0.710 | 0.517 | 0.604 | 0.272 |
+| HLT ParT Tauh30 | | 11 (0.17 [0.12, 0.24]) | 0.771 | 0.611 | 0.682 | 0.304 |
+| TEST `DoubleBDT_ParT_30` | 0.808 | 11 (0.17) | 0.799 | 0.608 | 0.666 | 0.353 |
+| TEST `DoubleBDTReg_ParT_30` | 0.815 | 11 (0.17) | 0.797 | 0.597 | 0.655 | 0.339 |
+| TEST `DoubleDS_ParT_30` | 0.919 | 11 (0.17) | 0.796 | 0.606 | 0.680 | 0.357 |
+| TEST `DoubleDSReg_ParT_30` | 0.934 | 11 (0.17) | 0.788 | 0.579 | 0.647 | 0.324 |
+| TEST `DoubleDSA_ParT_30` | 0.860 | 11 (0.17) | 0.713 | 0.537 | 0.618 | 0.272 |
+| TEST `DoubleBDT_1kHz_35` | 0.363 | 64 (0.99 [0.87, 1.13]) | 0.838 | 0.687 | 0.761 | 0.418 |
+| TEST `DoubleDS_1kHz_35` | 0.460 | 65 (1.01 [0.88, 1.15]) | 0.839 | 0.703 | 0.787 | 0.434 |
+| TEST `DoubleDSA_1kHz_35` | 0.398 | 65 (1.01 [0.88, 1.15]) | 0.836 | 0.700 | 0.785 | 0.430 |
+| TEST `DoubleDSReg_1kHz_26` | 0.607 | 64 (0.99 [0.87, 1.13]) | 0.837 | 0.690 | 0.767 | 0.422 |
+
+On MinBiasF1000 (159,920 events, 0.19 kHz each): DeepTau 3, ParT 0, the `_1kHz` paths 4 each,
+the `_ParT_30` paths 0 (DSA 1).
 
 - **At the DeepTau path's rate** the tagger paths reach 0.84 on the plateau, against 0.71 for
-  DeepTau. That is 98% of the L1 seed (0.855).
-- **At the ParT path's rate** (11 events) the tagger paths are +0.02–0.03 above ParT on the
-  plateau (0.79–0.80 vs 0.77, about 1.5–2 σ). Near threshold they are 0.01–0.03 below it
-  (40–50 GeV), so the two are about equal.
-  - ParT cuts at 30 GeV on its own jet pT. The emulation cuts at 35 GeV on pT^sig, and was not
-    optimised for this rate.
-  - The 11-event rate has a ±30% statistical uncertainty.
-- Below 30 GeV the tagger paths keep 0.13–0.23 of the events: the other τ or a jet passes.
+  DeepTau (98% of the L1 seed), and 0.42–0.43 against 0.27 over the whole acceptance.
+- **At the ParT path's rate**, cut at 30 GeV like ParT, BDT and DeepSets are +0.02–0.03 above ParT
+  on the plateau (0.79–0.80 vs 0.77, 1.5–2 σ), equal near threshold (40–50 GeV), and +0.05 over
+  the whole acceptance (0.35–0.36 vs 0.30), mostly from low-pT τ. The rate itself has ±30%
+  statistical uncertainty (11 events).
+- The regressed pT does not help at this rate: the cut must tighten (DS 0.919 → 0.934), and it
+  costs 0.01–0.03. At 1 kHz it is equal (`DSReg_1kHz_26`).
+- The α = 0.1 DeepSets is worse at tight cuts (0.71 at the ParT rate), as in the WP table.
+- Below 30 GeV the BDT and DeepSets paths keep 0.11–0.16 of the events (ParT and DSA 0.04–0.07):
+  the other τ or a jet passes.
 
 ## Regressed pT
 
@@ -296,9 +314,6 @@ nice python3 $S --sample MinBias --skim-sample minbias --events-l1pass --out-sam
 nice python3 scripts/test_tautag/wps.py                 # WPs -> wps.csv, wps_ptreg_scan.csv (20 s)
 nice python3 scripts/test_tautag/emulate_paths.py       # HLTTEST records, path rates (5 s)
 nice object_performance configs/V50nano/object_performance/test_tautag/*.yaml \
-    --version V50nano_170pre6HLT_TESTtautag
-nice python3 scripts/test_tautag/path_eff_overlay.py \
-    configs/V50nano/object_performance/test_tautag/test_tautag_path_eff.yaml \
     --version V50nano_170pre6HLT_TESTtautag
 rsync -a outputs/V50nano_170pre6HLT_TESTtautag/ \
     /eos/user/a/alobanov/www/L1T/Phase2/menu/Validation/MenuTools_AR26/TEST_tautag/

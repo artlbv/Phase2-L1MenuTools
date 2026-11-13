@@ -244,3 +244,21 @@ def test_bad_configs(cache):
         PathEfficiencyCollection(cfg, "bad")
     with pytest.raises(ValueError):
         SplitConfig({"field": "s", "categories": DM_CATS, "objects": 0})
+
+
+def test_hlt_test_bits(cache):
+    """HLT_TEST_* bits (emulated TEST paths) are read from the HLTTEST record."""
+    emul = [False, True, True, True, False, False]
+    ak.to_parquet(
+        ak.Array({"HLT_TEST_Emul": emul}),
+        cache / VERSION / f"{VERSION}_{SAMPLE}_HLTTEST.parquet",
+    )
+    cfg = _cfg()
+    cfg["path_efficiency"]["paths"]["T"] = {
+        "L1": ["L1_pSeed_final"],
+        "HLT": ["HLT_TEST_Emul"],
+    }
+    coll = PathEfficiencyCollection(cfg, "test_bits")
+    coll.create_hists()
+    # denominator ev0-ev3; seed AND emul: ev1, ev3
+    assert _counts(coll.hists, "T:L1_and_HLT") == (2, 4)
