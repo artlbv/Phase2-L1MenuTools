@@ -294,6 +294,52 @@ def test_multiplicity_min_objects_seed(cache, events):
     assert all(len(p["series"]) == 1 for p in coll.plots if p["vs"] == "eta")
 
 
+def test_norm_events_seed_only(cache, events):
+    """norm_events: the sample is a subset of norm_events events (e.g. the L1-accepted
+    minimum bias), so fractions and rates are per norm_events; seed.only drops the plain
+    curves of the seeded objects."""
+    _, trg, _, _ = events
+    bit = np.arange(N_EVENTS) % 3 == 0
+    pts = ak.Array(trg["pt"])
+    norm = 10 * N_EVENTS
+    ak.to_parquet(
+        ak.zip({"L1_pTestSeed_final": bit, "L1_other_final": ~bit}),
+        str(cache / VERSION / f"{VERSION}_{SAMPLE}_L1.parquet"),
+    )
+    vs = {"threshold": {"edges": [0, 10, 25]}}
+    cfg = _cfg(
+        "multiplicity",
+        vs=vs,
+        rate=True,
+        norm_events=norm,
+        seed={"bit": "L1_pTestSeed_final", "only": True},
+        reference_bits=[{"bit": "L1_other_final", "label": "other"}],
+    )
+    coll = PurityCollection(cfg, "synthetic_norm")
+    coll.create()
+    assert len(coll.objects) == 1
+    assert all(k.endswith("+seed") for k in coll.objects)
+    s = _plot(coll, "event_fraction", "threshold")
+    scale = constants.RATE_NORM_FACTOR / norm
+    for i_thr, thr in enumerate([0, 10, 25]):
+        n = ak.to_numpy(ak.sum(pts >= thr, axis=1))
+        k = ((n >= 1) & bit).sum()
+        assert s["num"][i_thr] == k and s["den"][i_thr] == norm
+        assert s["y"][i_thr] == pytest.approx(k * scale)
+        assert s["garwood_hi"][i_thr] > s["y"][i_thr]
+    assert coll.seed_rate["y"] == pytest.approx(bit.sum() * scale)
+    (ref,) = coll.reference_rates
+    assert ref["n"] == (~bit).sum() and ref["label"] == "other"
+    assert ref["y"] == pytest.approx((~bit).sum() * scale)
+    m = _plot(coll, "objects_per_event", "threshold")
+    n0 = ak.to_numpy(ak.sum(pts >= 0, axis=1))
+    assert m["y"][0] == pytest.approx((n0 * bit).sum() / norm)
+    with pytest.raises(ValueError, match="norm_events"):
+        PurityCollection(
+            _cfg("multiplicity", norm_events=norm, vs={"pu": {"edges": [0, 1]}}), "x"
+        )
+
+
 def test_plotter_outputs(cache, tmp_path, monkeypatch):
     import os
 

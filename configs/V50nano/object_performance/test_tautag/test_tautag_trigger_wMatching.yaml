@@ -26,6 +26,7 @@ TESTTauTriggerBarrel_wMatching:
     hltJetTauTagTEST:noID:barrel: "pt"
     hltJetTauTagTEST:BDT1kHz:barrel: "pt"
     hltJetTauTagTEST:DS1kHz:barrel: "pt"
+    hltJetTauTagTEST:DSA1kHz:barrel: "pt"
   thresholds: [27, 35]
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching + Trigger Efficiency (barrel, $p_T > <threshold>$ GeV) [TEST]"
@@ -54,6 +55,7 @@ TESTTauTriggerEndcap_wMatching:
     hltJetTauTagTEST:noID:endcap: "pt"
     hltJetTauTagTEST:BDT1kHz:endcap: "pt"
     hltJetTauTagTEST:DS1kHz:endcap: "pt"
+    hltJetTauTagTEST:DSA1kHz:endcap: "pt"
   thresholds: [27, 35]
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching + Trigger Efficiency (endcap, $p_T > <threshold>$ GeV) [TEST]"

@@ -26,6 +26,7 @@ TESTTauMatchingBarrel:
     hltJetTauTagTEST:noID: "pt"
     hltJetTauTagTEST:BDT1kHz: "pt"
     hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:DSA1kHz: "pt"
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching Efficiency (barrel) [TEST]"
   binning:
@@ -53,6 +54,7 @@ TESTTauMatchingEndcap:
     hltJetTauTagTEST:noID: "pt"
     hltJetTauTagTEST:BDT1kHz: "pt"
     hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:DSA1kHz: "pt"
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Matching Efficiency (endcap) [TEST]"
   binning:
@@ -86,3 +88,31 @@ TESTTauMatchingWPs:
     min: 0
     max: 150
     step: 6
+
+# DeepSets: the alpha = 0.1 score (b-jet rejection) at its WPs, and the earlier DeepSets
+# (mc_jv, no tt) at its 1 kHz cut, against the new p_tau / (p_tau + p_MB) at 1 kHz
+TESTTauMatchingWPs_DSA:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:DSOld1kHz: "pt"
+    hltJetTauTagTEST:DSA1kHz: "pt"
+    hltJetTauTagTEST:DSAEff90: "pt"
+    hltJetTauTagTEST:DSAEff80: "pt"
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching Efficiency ($|\\eta| < 2.1$) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 6
+

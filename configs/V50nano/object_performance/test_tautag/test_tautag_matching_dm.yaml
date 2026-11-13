@@ -4,8 +4,8 @@
 # (the cache version holding the tagger object; outputs go to outputs/<that version>/).
 # hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like.
 # Decay-mode split of test_tautag_matching.yaml (`split_by`, docs/object-performance.md), HH -> bbtautau.
-# One plot per tagger (BDT / DeepSets, all 3 WPs each) and region, plot names
-# TESTTau..._<BDT|DS>_DM. Per test object: the inclusive curve and one curve per generator decay
+# One plot per tagger (BDT / DeepSets / DeepSets alpha = 0.1, all 3 WPs each) and region, plot names
+# TESTTau..._<BDT|DS|DSA>_DM. Per test object: the inclusive curve and one curve per generator decay
 # mode of the visible gen tau (GenVisTau_status: 0 = 1-prong, 1 / 2 = 1-prong + 1 / 2 pi0,
 # 10 = 3-prong, 11 = 3-prong + 1 pi0; 15 = other, only in the inclusive curve), and a fractions
 # JSON with the efficiencies integrated over summary_range. Generated from test_tautag_matching.yaml; keep in sync.
@@ -94,6 +94,48 @@ TESTTauMatchingBarrel_DS_DM:
     summary_range:
     - 40
     - 150
+TESTTauMatchingBarrel_DSA_DM:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: true
+  reference_object:
+    object: GenVisTau
+    x_arg: pt
+    label: Gen Taus
+    cuts:
+      event:
+      - abs({eta}) < 1.5
+      object:
+      - abs({eta}) < 2.1
+  test_objects:
+    L1nnPuppiTau:default: pt
+    hltHpsPFTau:default: pt
+    hltHpsPFTau:MediumDeepTau: pt
+    hltJetTauTagTEST:DSA1kHz: pt
+    hltJetTauTagTEST:DSAEff90: pt
+    hltJetTauTagTEST:DSAEff80: pt
+  xlabel: Gen. $p_T$ (GeV)
+  ylabel: Matching Efficiency (barrel) [TEST]
+  binning:
+    min: 0
+    max: 150
+    step: 6
+  split_by:
+    field: status
+    name: ''
+    categories:
+      1-prong:
+      - 0
+      1-prong + $\pi^0$s:
+      - 1
+      - 2
+      3-prong:
+      - 10
+      3-prong + $\pi^0$:
+      - 11
+    summary_range:
+    - 40
+    - 150
 TESTTauMatchingEndcap_BDT_DM:
   sample: HHTo2B2Tau
   version: V50nano
@@ -156,6 +198,48 @@ TESTTauMatchingEndcap_DS_DM:
     hltJetTauTagTEST:DS1kHz: pt
     hltJetTauTagTEST:DSEff90: pt
     hltJetTauTagTEST:DSEff80: pt
+  xlabel: Gen. $p_T$ (GeV)
+  ylabel: Matching Efficiency (endcap) [TEST]
+  binning:
+    min: 0
+    max: 150
+    step: 6
+  split_by:
+    field: status
+    name: ''
+    categories:
+      1-prong:
+      - 0
+      1-prong + $\pi^0$s:
+      - 1
+      - 2
+      3-prong:
+      - 10
+      3-prong + $\pi^0$:
+      - 11
+    summary_range:
+    - 40
+    - 150
+TESTTauMatchingEndcap_DSA_DM:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: true
+  reference_object:
+    object: GenVisTau
+    x_arg: pt
+    label: Gen Taus
+    cuts:
+      event:
+      - abs({eta}) > 1.5
+      object:
+      - abs({eta}) < 2.1
+  test_objects:
+    L1nnPuppiTau:default: pt
+    hltHpsPFTau:default: pt
+    hltHpsPFTau:MediumDeepTau: pt
+    hltJetTauTagTEST:DSA1kHz: pt
+    hltJetTauTagTEST:DSAEff90: pt
+    hltJetTauTagTEST:DSAEff80: pt
   xlabel: Gen. $p_T$ (GeV)
   ylabel: Matching Efficiency (endcap) [TEST]
   binning:

@@ -74,7 +74,8 @@ class PurityPlotter(Plotter):
         its colour, a dashed line and open markers.
         """
         base = key.removesuffix("+seed")
-        plain = [k for k in self.collection.objects if not k.endswith("+seed")]
+        # order of the test objects, also for seeded copies without a plain curve
+        plain = list(dict.fromkeys(k.removesuffix("+seed") for k in self.collection.objects))
         style = {"color": colors[plain.index(base) % len(colors)]}
         if key.endswith("+seed"):
             style.update({"linestyle": "--", "markerfacecolor": "none"})
@@ -154,9 +155,15 @@ class PurityPlotter(Plotter):
                 if self.pur_cfg.seed
                 else ""
             )
+            norm = (
+                f"; per {self.pur_cfg.norm_events} events (the sample: the subset "
+                "that can pass)"
+                if self.pur_cfg.norm_events
+                else ""
+            )
             return (
                 f"Fraction of events with {self._n_obj} {lvl} objects above "
-                f"threshold{scale} (no gen matching){seed}"
+                f"threshold{scale} (no gen matching){seed}{norm}"
             )
         return f"All {lvl} objects after ID / $\\eta$ cuts (no gen matching)"
 
@@ -196,6 +203,7 @@ class PurityPlotter(Plotter):
             "leading_only": self.pur_cfg.leading_only,
             "rate_kHz": self.pur_cfg.rate and plot["quantity"] == "event_fraction",
             "n_events": self.collection.n_events,
+            "norm_events": self.pur_cfg.norm_events,
             "min_objects": self.pur_cfg.min_objects,
             "seed": (
                 dict(self.pur_cfg.seed, **(self.collection.seed_rate or {}))
@@ -203,6 +211,7 @@ class PurityPlotter(Plotter):
                 else None
             ),
             "rate_lines_kHz": self.pur_cfg.rate_lines or None,
+            "reference_bits": self.collection.reference_rates or None,
             "pu_variable": self.pur_cfg.pu_variable if plot["vs"] == "pu" else None,
             "pileup_source": (
                 self.collection.pileup_source if plot["vs"] == "pu" else None
@@ -288,6 +297,15 @@ class PurityPlotter(Plotter):
                 f"({seed['n']} events)",
             )
         if is_rate:
+            ref_styles = [(0, (6, 2)), (0, (1, 1)), (0, (3, 1, 1, 1, 1, 1)), "-"]
+            for i, ref in enumerate(self.collection.reference_rates):
+                ax.axhline(
+                    ref["y"],
+                    ls=ref_styles[i % len(ref_styles)],
+                    c="0.35",
+                    lw=1.6,
+                    label=f"{ref['label']}: {ref['y']:.3g} kHz ({ref['n']} events)",
+                )
             for line in self.pur_cfg.rate_lines:
                 ax.axhline(line, ls=":", c="k", lw=1.2)
                 ax.text(
@@ -325,6 +343,9 @@ class PurityPlotter(Plotter):
                 )
                 if quantity == "event_fraction" and self.pur_cfg.rate:
                     lines += self.pur_cfg.rate_lines
+                    lines += [
+                        r["y"] for r in self.collection.reference_rates if r["y"] > 0
+                    ]
                 ymin = min([y.min()] + lines)
                 ax.set_ylim(ymin / 3, max([y_hi.max()] + lines) * 30)
             elif len(y_hi):

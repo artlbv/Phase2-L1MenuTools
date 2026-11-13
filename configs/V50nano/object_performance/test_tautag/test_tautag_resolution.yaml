@@ -4,7 +4,8 @@
 # (the cache version holding the tagger object; outputs go to outputs/<that version>/).
 # hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
 # the HLT-jet taggers are not (the jets are stored in every event).
-# Response / resolution of the tau pT estimates: pT^sig of the HLT-jet candidates (no ID),
+# Response / resolution of the tau pT estimates: pT^sig of the HLT-jet candidates (no ID), the
+# DeepSets regressed pT (hltJetTauTagRegTEST),
 # HPS, L1 NN PUPPI tau, HH -> bbtautau.
 
 TESTTauResolutionBarrel:
@@ -22,6 +23,7 @@ TESTTauResolutionBarrel:
         - "abs({eta}) < 2.1"
   test_objects:
     hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagRegTEST:noID: "pt"
     hltHpsPFTau:default: "pt"
     L1nnPuppiTau:default: "pt"
   resolution:
@@ -47,6 +49,7 @@ TESTTauResolutionEndcap:
         - "abs({eta}) < 2.1"
   test_objects:
     hltJetTauTagTEST:noID: "pt"
+    hltJetTauTagRegTEST:noID: "pt"
     hltHpsPFTau:default: "pt"
     L1nnPuppiTau:default: "pt"
   resolution:

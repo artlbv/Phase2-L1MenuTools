@@ -60,6 +60,27 @@ TESTTauRates_DS:
         - hltJetTauTagTEST:DSEff90
         - hltJetTauTagTEST:DSEff80
 
+TESTTauRates_DSA:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: &dsa_objects
+    L1nnPuppiTau:default: "pt"
+    hltHpsPFTau:default: "pt"
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:DSA1kHz: "pt"
+    hltJetTauTagTEST:DSAEff90: "pt"
+    hltJetTauTagTEST:DSAEff80: "pt"
+  purity:
+    <<: *rates
+    seed: &seed_dsa
+      bit: L1_pDoublePuppiTau52_52_final
+      label: "L1 pDoublePuppiTau52_52"
+      objects:
+        - hltHpsPFTau:MediumDeepTau
+        - hltJetTauTagTEST:DSA1kHz
+        - hltJetTauTagTEST:DSAEff90
+        - hltJetTauTagTEST:DSAEff80
+
 TESTDiTauRates_BDT:
   sample: MinBiasF1000
   version: V50nano
@@ -77,3 +98,34 @@ TESTDiTauRates_DS:
     <<: *rates
     min_objects: 2
     seed: *seed_ds
+
+TESTDiTauRates_DSA:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: *dsa_objects
+  purity:
+    <<: *rates
+    min_objects: 2
+    seed: *seed_dsa
+
+# Regressed pT: threshold on ptReg (hltJetTauTagRegTEST) with the DS1kHz cut and with the cut
+# re-chosen for 1 kHz at 26 GeV, against pT^sig with DS1kHz.
+TESTDiTauRates_DSReg:
+  sample: MinBiasF1000
+  version: V50nano
+  test_objects: &dsreg_objects
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagRegTEST:DS1kHz: "pt"
+    hltJetTauTagRegTEST:DSReg1kHz: "pt"
+  purity:
+    <<: *rates
+    min_objects: 2
+    seed: &seed_dsreg
+      bit: L1_pDoublePuppiTau52_52_final
+      label: "L1 pDoublePuppiTau52_52"
+      objects:
+        - hltHpsPFTau:MediumDeepTau
+        - hltJetTauTagTEST:DS1kHz
+        - hltJetTauTagRegTEST:DS1kHz
+        - hltJetTauTagRegTEST:DSReg1kHz

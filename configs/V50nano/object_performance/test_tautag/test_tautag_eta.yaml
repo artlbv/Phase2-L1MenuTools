@@ -26,6 +26,7 @@ TESTTauMatching_Eta_Pt40ToInf:
     hltJetTauTagTEST:noID: "eta"
     hltJetTauTagTEST:BDT1kHz: "eta"
     hltJetTauTagTEST:DS1kHz: "eta"
+    hltJetTauTagTEST:DSA1kHz: "eta"
   xlabel: "Gen. $\\eta$"
   ylabel: "Matching Efficiency (gen vis. $p_T$ > 40 GeV) [TEST]"
   binning:
@@ -54,6 +55,7 @@ TESTTauTrigger_Eta_Pt50ToInf_wMatching:
     hltJetTauTagTEST:noID: "eta"
     hltJetTauTagTEST:BDT1kHz: "eta"
     hltJetTauTagTEST:DS1kHz: "eta"
+    hltJetTauTagTEST:DSA1kHz: "eta"
   thresholds: [35]
   xlabel: "Gen. $\\eta$"
   ylabel: "Matching + Trigger Eff. ($p_T > <threshold>$ GeV, gen vis. $p_T$ > 50 GeV) [TEST]"

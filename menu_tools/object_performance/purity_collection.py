@@ -24,8 +24,12 @@ the rate plots (no offline scalings).
 
 Event-level options: `min_objects` (events with >= N objects, e.g. 2 for a
 double-object rate), `seed` (also each listed object ANDed with a per-event trigger
-bit, e.g. the L1 seed of an HLT path) and `rate_lines` (rates in kHz to mark, with the
-lowest threshold that gives at most that rate).
+bit, e.g. the L1 seed of an HLT path; `only`: just the ANDed curves), `rate_lines`
+(rates in kHz to mark, with the lowest threshold that gives at most that rate), `reference_bits` (per-event trigger
+bits, e.g. HLT paths, drawn as reference rates) and
+`norm_events` (the sample is a subset of that many events holding every event that can
+pass, e.g. the L1-accepted minimum-bias events: fractions and rates are per
+`norm_events`).
 """
 
 import os
@@ -164,6 +168,14 @@ class PurityConfig:
         record: L1                 # default: the bit's prefix (L1 / HLT)
         label: "L1 seed"
         objects: [...]             # test object keys (default: all)
+        only: false                # true: drop the plain curves of these objects
+                                   # (e.g. a sample of seed-passing events only)
+      reference_bits:              # rates of per-event bits (e.g. HLT paths) as lines
+        - {bit: HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1, label: "DeepTau path"}
+                                   # record: default the bit's prefix (L1 / HLT)
+      norm_events: null            # event-level fractions / rates per this many events
+                                   # instead of the sample's (a subset that contains
+                                   # every event that can pass); not with `pu`
       rate_lines: [1000]           # kHz (needs `rate`): lines, and per curve the
                                    # lowest threshold with rate <= line
       rate_line_step: 0.5          # GeV, threshold step of that search
@@ -209,6 +221,14 @@ class PurityConfig:
         if self.rate_lines and not self.rate:
             raise ValueError("purity: `rate_lines` needs `rate`")
         self.rate_line_step: float = float(cfg.get("rate_line_step", 0.5))
+        self.reference_bits: list[dict] = list(cfg.get("reference_bits") or [])
+        for ref in self.reference_bits:
+            if "bit" not in ref:
+                raise KeyError("purity: each `reference_bits` entry needs a `bit`")
+        norm = cfg.get("norm_events")
+        self.norm_events: Optional[int] = int(norm) if norm is not None else None
+        if self.norm_events is not None and "pu" in self.vs:
+            raise ValueError("purity: `norm_events` does not work with the `pu` binning")
 
     @property
     def seed_label(self) -> str:
@@ -266,10 +286,18 @@ class PurityCollection(TurnOnCollection):
         # per-event seed bit and its rate (count, value, Garwood interval)
         self.seed_mask: Optional[np.ndarray] = None
         self.seed_rate: Optional[dict] = None
+        # rates of the `reference_bits` (count, value, Garwood interval, label)
+        self.reference_rates: list[dict] = []
 
     @property
     def matching(self) -> bool:
         return self.pur_cfg.mode != "multiplicity"
+
+    @property
+    def n_norm(self) -> int:
+        """Events the per-event fractions and rates are normalised to: the sample's,
+        or `norm_events` (the sample is a subset holding every event that can pass)."""
+        return self.pur_cfg.norm_events or self.n_events
 
     # ---- loading -------------------------------------------------------------------
 
@@ -378,13 +406,10 @@ class PurityCollection(TurnOnCollection):
         self.pileup = pileup
         self.pileup_source = fname
 
-    def _load_seed(self) -> None:
-        """The per-event `seed` bit, row-aligned with the test objects."""
-        seed = self.pur_cfg.seed
-        if not seed:
-            return
-        bit = seed["bit"]
-        record = seed.get("record", bit.split("_")[0])
+    def _load_bit(self, bit: str, record: Optional[str] = None) -> np.ndarray:
+        """A per-event bit of <version>_<sample>_<record>.parquet, row-aligned with the
+        test objects (record: default the bit's prefix)."""
+        record = record or bit.split("_")[0]
         v, sample = self.cfg_plot.version, self.cfg_plot.sample
         fname = f"{constants.CACHE_DIR}/{v}/{v}_{sample}_{record}.parquet"
         if not os.path.exists(fname):
@@ -398,16 +423,40 @@ class PurityCollection(TurnOnCollection):
                 f"{fname} has {len(mask)} events, the test objects {self.n_events}: "
                 "not row-aligned"
             )
-        self.seed_mask = mask
+        return mask
+
+    def _bit_rate(self, mask: np.ndarray) -> dict:
+        """Count of a per-event bit, its rate (or fraction) and 68% Garwood interval."""
         n = int(mask.sum())
-        scale = constants.RATE_NORM_FACTOR / self.n_events if self.pur_cfg.rate else 1
+        scale = constants.RATE_NORM_FACTOR if self.pur_cfg.rate else 1
+        scale /= self.n_norm
         lo, hi = garwood_interval(n)
-        self.seed_rate = {
+        return {
             "n": n,
             "y": n * scale,
             "garwood_lo": lo * scale,
             "garwood_hi": hi * scale,
         }
+
+    def _load_seed(self) -> None:
+        """The per-event `seed` bit, row-aligned with the test objects."""
+        seed = self.pur_cfg.seed
+        if not seed:
+            return
+        self.seed_mask = self._load_bit(seed["bit"], seed.get("record"))
+        self.seed_rate = self._bit_rate(self.seed_mask)
+
+    def _load_reference_bits(self) -> None:
+        """Rates of the `reference_bits` (e.g. the HLT paths an emulation compares to)."""
+        for ref in self.pur_cfg.reference_bits:
+            mask = self._load_bit(ref["bit"], ref.get("record"))
+            self.reference_rates.append(
+                dict(
+                    self._bit_rate(mask),
+                    bit=ref["bit"],
+                    label=ref.get("label", ref["bit"]),
+                )
+            )
 
     def _add_seeded_objects(self) -> None:
         """`<key>+seed` copies of the objects listed in `seed.objects`, keeping only
@@ -416,6 +465,7 @@ class PurityCollection(TurnOnCollection):
         """
         if self.seed_mask is None:
             return
+        only = bool(self.pur_cfg.seed.get("only", False))
         keys = [
             str(Object(k, self.cfg_plot.version_for_objects))
             for k in self.pur_cfg.seed.get("objects") or []
@@ -430,6 +480,8 @@ class PurityCollection(TurnOnCollection):
             }
             seeded["base"] = key
             self.objects[f"{key}+seed"] = seeded
+            if only:
+                del self.objects[key]
 
     def _plain_objects(self) -> dict[str, dict[str, Any]]:
         """The test objects without the seeded copies."""
@@ -554,14 +606,14 @@ class PurityCollection(TurnOnCollection):
             if quantity == "unmatched_density":
                 sel &= ~obj["matched"]
             counts = np.histogram(self._x(obj, vs)[sel], bins=edges)[0]
-            y = counts / self.n_events
-            err = np.sqrt(counts) / self.n_events
+            y = counts / self.n_norm
+            err = np.sqrt(counts) / self.n_norm
             series[key] = {
                 "y": y,
                 "err_lo": err,
                 "err_hi": err,
                 "num": counts,
-                "den": np.full(len(counts), self.n_events),
+                "den": np.full(len(counts), self.n_norm),
             }
         self._add_plot(quantity, vs, threshold, series)
 
@@ -578,12 +630,18 @@ class PurityCollection(TurnOnCollection):
         if ev_sel is not None:
             counts = counts[ev_sel]
         if quantity.endswith("per_event"):
+            if ev_sel is None and self.n_norm > len(counts):
+                # the events outside the sample have no objects above threshold
+                counts = np.concatenate(
+                    [counts, np.zeros(self.n_norm - len(counts), counts.dtype)]
+                )
             m, e = mean_with_error(counts)
             return m, e, e, int(counts.sum()), len(counts)
         n_pass = int((counts >= self.pur_cfg.min_objects).sum())
-        y, lo, hi = ratio_with_cp([n_pass], [len(counts)])
+        n_den = len(counts) if ev_sel is not None else self.n_norm
+        y, lo, hi = ratio_with_cp([n_pass], [n_den])
         scale = constants.RATE_NORM_FACTOR if self.pur_cfg.rate else 1.0
-        return y[0] * scale, lo[0] * scale, hi[0] * scale, n_pass, len(counts)
+        return y[0] * scale, lo[0] * scale, hi[0] * scale, n_pass, n_den
 
     def _event_vs_threshold(self, quantity: str) -> None:
         thresholds = self.pur_cfg.vs_edges("threshold")
@@ -603,7 +661,7 @@ class PurityCollection(TurnOnCollection):
 
     def _garwood(self, num: np.ndarray) -> dict[str, np.ndarray]:
         """68% Garwood interval on the rate (kHz) from the event counts."""
-        scale = constants.RATE_NORM_FACTOR / self.n_events
+        scale = constants.RATE_NORM_FACTOR / self.n_norm
         bounds = np.array([garwood_interval(int(n)) for n in num]).reshape(-1, 2)
         return {"garwood_lo": bounds[:, 0] * scale, "garwood_hi": bounds[:, 1] * scale}
 
@@ -615,7 +673,7 @@ class PurityCollection(TurnOnCollection):
         edges = self.pur_cfg.vs_edges("threshold")
         step = self.pur_cfg.rate_line_step
         grid = np.arange(edges[0], edges[-1] + step / 2, step)
-        scale = constants.RATE_NORM_FACTOR / self.n_events
+        scale = constants.RATE_NORM_FACTOR / self.n_norm
         n_pass = np.array(
             [
                 int((self._per_event_counts(obj, t) >= self.pur_cfg.min_objects).sum())
@@ -716,6 +774,7 @@ class PurityCollection(TurnOnCollection):
             self._load_gen()
         self._build_objects()
         self._load_seed()
+        self._load_reference_bits()
         self._add_seeded_objects()
         self.gen = None
         self.ak_arrays = {}
