@@ -28,6 +28,8 @@
 #   *Eff90 / *Eff80: 90% / 80% per-candidate efficiency for genuine HH tau_h (skim label 0)
 #     with pT^sig > 20 GeV. Minimum-bias jet fake rate (files 0-999, pT^sig > 20 GeV):
 #     BDT 5.8% / 1.6%, DeepSets 5.1% / 1.6%, alpha = 0.1 6.1% / 2.2%.
+#   *ParT: the 1 kHz emulation at the rate of HLT_DoubleMediumPFPuppiParTTauh30_eta2p1
+#     (11 events, 0.17 kHz). HH efficiency: BDT 0.513, DeepSets 0.515, alpha = 0.1 0.426.
 # All ids cut |eta| < 2.1, as the HLT tau paths and the report's trigger.
 
 hltJetTauTagTEST:
@@ -104,6 +106,26 @@ hltJetTauTagTEST:
         inclusive:
           - "abs({eta}) < 2.1"
           - "{dsOld} > 0.412"
+    # at the rate of HLT_DoubleMediumPFPuppiParTTauh30_eta2p1 (11 of the 2M minimum-bias
+    # events, 0.17 kHz) in the same double-tau emulation (pT^sig > 35)
+    BDTParT:
+      label: "TEST HLT-jet BDT > 0.792 (ParT-path rate)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.792"
+    DSParT:
+      label: "TEST HLT-jet DeepSets > 0.919 (ParT-path rate)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.919"
+    DSAParT:
+      label: "TEST HLT-jet DeepSets $\\alpha$=0.1 > 0.857 (ParT-path rate)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{dsA01} > 0.857"
     # for the regressed-pT comparison (test_tautag_regpt.yaml): the pT cut in the id
     DS1kHzPt35:
       label: "TEST DeepSets > 0.460, $p_T^{sig}$ > 35 GeV (1 kHz)"

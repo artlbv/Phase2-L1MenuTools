@@ -7,6 +7,8 @@ configs/V50nano/objects/test_tautag.yaml) with the machinery of the hlt-tau-pu s
           candidates with pT^sig > 35 GeV, |eta| < 2.1, dR > 0.5, score >= cut; at most
           int(1 kHz / 31,038 kHz * 1,999,040) = 64 minimum-bias events (all 2M events:
           the skim holds every seeded event of every file).
+  *ParT   the same emulation at the rate of HLT_DoubleMediumPFPuppiParTTauh30_eta2p1
+          (its count in the 2M minimum-bias HLT cache, 11 events): at most that many events.
   *Eff90 / *Eff80   90% / 80% per-candidate efficiency on genuine HH tau_h (skim label
           0) with pT^sig > 20 GeV.
 Regressed pT (DeepSets ptReg): with the DeepSets 1 kHz cut fixed, the ptReg threshold
@@ -20,6 +22,7 @@ re-chosen with ptReg > 35. HH efficiency: events with 2 visible tau_h > 25 GeV (
 import os
 import sys
 
+import awkward as ak
 import numpy as np
 import pandas as pd
 
@@ -32,6 +35,15 @@ from common import OUT, MINBIAS_RATE_KHZ, DITAU_L1, garwood, load  # noqa: E402
 KEY = ["file", "entry", "jet_idx"]
 DS = "ds_mcttreg_jv_s0"
 ODIR = os.path.join("configs", "V50nano", "object_performance", "test_tautag")
+HLT_CACHE = os.path.join(
+    os.environ.get("MENU_TOOLS_CACHE", ""),
+    "V50nano_170pre6HLT",
+    "V50nano_170pre6HLT_MinBias_HLT.parquet",
+)
+PATHS = {
+    "DeepTau": "HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1",
+    "ParT": "HLT_DoubleMediumPFPuppiParTTauh30_eta2p1",
+}
 
 
 def main():
@@ -72,6 +84,11 @@ def main():
     def ev_scores(cand, evt, ptcol, ptmin, taggers):
         return __import__("evaluate_reg").event_scores_pt(cand, evt, taggers, ptcol, ptmin)
 
+    hlt = ak.from_parquet(HLT_CACHE, columns=list(PATHS.values()))
+    assert len(hlt) == n_mb
+    n_path = {k: int(ak.sum(hlt[b])) for k, b in PATHS.items()}
+    print("HLT paths in the 2M minimum bias:", n_path)
+
     # 1 kHz cuts with pT^sig > 35
     S_hh = ev_scores(hh, acc, "sig_pt", 35.0, tags)
     S_mb = ev_scores(mb, ev_mb, "sig_pt", 35.0, tags)
@@ -84,6 +101,15 @@ def main():
                          rate_khz=k * MINBIAS_RATE_KHZ / n_mb,
                          rate_lo=lo * MINBIAS_RATE_KHZ / n_mb, rate_hi=hi * MINBIAS_RATE_KHZ / n_mb,
                          hh_eff_acc25=eff, tau_eff20=(sig[t] >= thr).mean()))
+        thr = ED.thr_for(S_mb[t].values, n_path["ParT"])
+        k = int((S_mb[t].values >= thr).sum())
+        lo, hi = garwood(k)
+        rows.append(dict(score=t, wp="ParT", pt="sigPt", pt_thr=35.0, cut=thr, n_mb=k,
+                         rate_khz=k * MINBIAS_RATE_KHZ / n_mb,
+                         rate_lo=lo * MINBIAS_RATE_KHZ / n_mb, rate_hi=hi * MINBIAS_RATE_KHZ / n_mb,
+                         hh_eff_acc25=(S_hh[t].values >= thr)[a25].mean(),
+                         tau_eff20=(sig[t] >= thr).mean(),
+                         note=f"rate of the ParT path ({n_path['ParT']} events)"))
         for e in (0.9, 0.8):
             cut = float(np.quantile(sig[t].values, 1 - e))
             k = int((S_mb[t].values >= cut).sum())

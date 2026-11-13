@@ -23,6 +23,7 @@ TESTTauRatesL1Pass_BDT:
     hltJetTauTagTEST:BDT1kHz: "pt"
     hltJetTauTagTEST:BDTEff90: "pt"
     hltJetTauTagTEST:BDTEff80: "pt"
+    hltJetTauTagTEST:BDTParT: "pt"
   purity: &rates
     mode: multiplicity
     vs:
@@ -43,6 +44,7 @@ TESTTauRatesL1Pass_DS:
     hltJetTauTagTEST:DS1kHz: "pt"
     hltJetTauTagTEST:DSEff90: "pt"
     hltJetTauTagTEST:DSEff80: "pt"
+    hltJetTauTagTEST:DSParT: "pt"
   purity: *rates
 
 TESTTauRatesL1Pass_DSA:
@@ -53,6 +55,7 @@ TESTTauRatesL1Pass_DSA:
     hltJetTauTagTEST:DSA1kHz: "pt"
     hltJetTauTagTEST:DSAEff90: "pt"
     hltJetTauTagTEST:DSAEff80: "pt"
+    hltJetTauTagTEST:DSAParT: "pt"
   purity: *rates
 
 TESTDiTauRatesL1Pass_BDT:
@@ -62,6 +65,9 @@ TESTDiTauRatesL1Pass_BDT:
   purity: &dirates
     <<: *rates
     min_objects: 2
+    reference_bits: &paths        # the HLT double-tau paths (same L1 seed) as reference rates
+      - {bit: HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1, label: "HLT DoubleMediumDeepTauPFTauHPS35"}
+      - {bit: HLT_DoubleMediumPFPuppiParTTauh30_eta2p1, label: "HLT DoubleMediumPFPuppiParTTauh30"}
 
 TESTDiTauRatesL1Pass_DS:
   sample: MinBiasL1Pass
@@ -88,5 +94,6 @@ TESTDiTauRatesL1Pass_DSReg:
   purity:
     <<: *rates
     min_objects: 2
+    reference_bits: *paths
     vs:
       threshold: {min: 10, max: 60, step: 1}

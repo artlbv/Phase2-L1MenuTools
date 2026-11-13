@@ -501,8 +501,12 @@
         # record: L1                   # default: the bit's prefix (L1 / HLT)
         label: "L1 pDoublePuppiTau52_52"
         objects: [hltJetTauTagTEST:BDT1kHz]  # default: all test objects
+        # only: true                   # draw only the seeded curves of these objects
       rate_lines: [1]                  # kHz (needs `rate`)
       # rate_line_step: 0.5            # GeV
+      reference_bits:                  # per-event bits drawn as reference rates
+        - {bit: HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1, label: "DeepTau path"}
+      # norm_events: 1999040           # the sample is a subset of this many events
   ```
 
   `min_objects` counts events with at least that many objects above threshold, without any
@@ -516,6 +520,19 @@
   `rate`, Garwood interval; `at_scan_start` if the scan starts below the line). Example:
   `configs/V50nano/object_performance/test_tautag/test_tautag_rates.yaml`. Curves take their
   colour from the 10-colour list by test object (the CMS style alone cycles 6).
+
+  `reference_bits` draws the rate of each listed per-event bit (e.g. the HLT paths an emulated
+  trigger is compared with) as a horizontal line labelled with its rate and event count; the JSON
+  stores them under `reference_bits` (count, rate, Garwood interval). `seed.only: true` drops the
+  plain curves of the seeded objects, for a sample in which only the seeded quantity is defined.
+
+  **Subsets of minimum bias (`norm_events`).** A sample may hold only the events that can pass,
+  e.g. the L1-accepted minimum-bias events (`MinBiasL1Pass` of the TEST tau taggers, 31,786 of
+  1,999,040 events). With `norm_events: N` the event-level fractions, rates, Garwood intervals,
+  `at_rate` thresholds and per-event multiplicities are per N events (the events outside the
+  sample count as failing). This is correct only for selections that every event outside the
+  sample fails, e.g. ANDed with an L1 seed contained in the subset (use `seed` with
+  `only: true`); it is not allowed with the `pu` binning.
 
   **Pileup.** The `pu` binning reads `<v>_<sample>_Pileup.parquet` from `pileup_version` if given,
   else from the plot version `<v>`, else from `<v>PU` (e.g. the row-aligned `V50nano_170X1026PU`
