@@ -14,6 +14,9 @@ part of the official configs. Branch `ar26_tautag_test`. It is not part of the u
 - WPs at the rate of the new reference path `HLT_DoubleMediumPFPuppiParTTauh30_eta2p1` (`*ParT`).
   The two HLT paths are drawn as reference rates. New path-level comparison of the HLT paths and
   the emulated tagger paths.
+- Path level on DY → ττ (no b jets) with paired gained / lost counts and the composition of the
+  tagged jets: at the ParT rate the taggers are below ParT on genuine τ (DY 0.074–0.087 vs 0.104);
+  their gain over ParT on HH comes mostly from b jets ("Conclusion on τ ID" below).
 - Menu-tools options used here: `purity.norm_events`, `purity.seed.only`, `purity.reference_bits`
   (docs/object-performance.md), and in `path_efficiency.py` the bits `HLT_TEST_*` are read from the
   TEST-only record `HLTTEST` (the emulated tagger paths).
@@ -173,54 +176,134 @@ reproduces the WP definitions within an event (64 / 65 / 11 events at 35 GeV).
 ## Path level (HLT paths and emulated tagger paths)
 
 `test_tautag_path_eff.yaml` (stock `path_efficiency` with the `paths:` map, as
-`path_eff_taus_compare.yaml`): `object_performance/path_efficiency/TESTDiTauPath_{ParTRate,1kHz}_*`.
-- HH → bbττ per-event efficiency, no matching, vs the subleading gen visible τ pT, the leading
-  τ pT (events with two τ in |η| < 2.1) and the subleading |η| (subleading pT > 60 GeV). Each plot
-  is also split by the decay-mode pair of the two leading τ (`_DMpair_*`).
-- **Emulated paths** `HLT_TEST_Double<tagger>[Reg]_<WP>_<thr>` = L1 seed ∧ ≥ 2 tagger candidates
-  with |η| < 2.1, pT > thr, score > cut, and ΔR > 0.5 between two of them (as the report's
-  emulation and the HLT double-τ paths). `Reg`: threshold on the regressed pT instead of pT^sig.
-  Per-event bits in `<version>_<sample>_HLTTEST.parquet` (HH, MinBiasF1000, MinBiasL1Pass), written
-  by `scripts/test_tautag/emulate_paths.py`; `path_efficiency.py` reads `HLT_TEST_*` bits from that
+`path_eff_taus_compare.yaml`): `object_performance/path_efficiency/TESTDiTauPath_*` (HH) and
+`TESTDiTauPathDY_*` (DY).
+- Per-event efficiency, no matching, vs the subleading gen visible τ pT, the leading τ pT (events
+  with two τ in |η| < 2.1) and the subleading |η| (subleading pT > 60 GeV on HH, > 35 GeV on DY).
+  Each plot is also split by the decay-mode pair of the two leading τ (`_DMpair_*`).
+- **Emulated paths** `HLT_TEST_Double<tagger>[Reg|Jet]_<WP>_<thr>` = L1 seed ∧ ≥ 2 tagger
+  candidates with |η| < 2.1, pT > thr, score > cut, and ΔR > 0.5 between two of them (as the
+  report's emulation and the HLT double-τ paths). Threshold on pT^sig; `Reg`: on the regressed pT;
+  `Jet`: on the corrected AK4 jet pT (`jetPt`, as the ParT path). Per-event bits in
+  `<version>_<sample>_HLTTEST.parquet` (HH, DY, MinBiasF1000, MinBiasL1Pass), written by
+  `scripts/test_tautag/emulate_paths.py`; `path_efficiency.py` reads `HLT_TEST_*` bits from that
   record. Cuts, counts and rates: `emulated_paths.csv`.
-  - `*_ParT_30`: cut chosen so that at most 11 minimum-bias events of the 2M pass (the ParT
-    path's count), at 30 GeV like ParT.
+  - `*_ParT_30`: the 4-decimal cut just above the 12th minimum-bias event, so that 11 of the 2M
+    pass (the ParT path's count), at 30 GeV like ParT. `ParTRatePtDef` plots compare the pT
+    definitions.
   - `*_1kHz_35`: the 1 kHz WPs at 35 GeV; `DSReg_1kHz_26`: ds > 0.607, regressed pT > 26 GeV.
-- DY is not shown: the TEST DY cache has no GenVisTau.
+- **Paired comparison and jet composition**: `scripts/test_tautag/path_diagnosis.py` →
+  `path_compare_allacc.csv`, `path_compare_bins.csv`, `path_compare_jets.csv`.
+  - Acceptance: ≥ 2 GenVisTau with pT > 25 GeV and |η| < 2.1 (HH 9,595 events, DY 2,764).
+  - Gained / lost: events the tagger path takes and the HLT path does not, and the reverse. p-value:
+    exact McNemar (binomial on gained vs gained + lost).
+  - Tagged pair: of the passing candidates, the pair with the highest smaller score (the one that
+    fires the bit). Each jet is classified in order: τ (ΔR < 0.3 to a GenVisTau); lepton (ΔR < 0.3
+    to a status-1 e/μ, prompt or from a prompt τ decay, pT > 5); b / c / light (hadronFlavour of
+    the nearest GenJet with ΔR < 0.4); unmatched.
+  - "ID-only": the tagger path with a passing pair whose two jets are both τ-matched. The HLT
+    paths cannot be classified (no per-jet ParT / DeepTau objects in the nano).
+- DY GenVisTau and GenJet were cached for this (`configs/V50nano/cache_objects/
+  caching_170pre6_HLT_DYgen.yaml`, new files in V50nano_170pre6HLT, same sorted file list and row
+  order; 200,000 rows as the other DY records; 99.6% of the GenVisTau mothers in the cached GenPart
+  are τ).
 
 Rates: minimum-bias events of the 2M (MinBiasL1Pass), 1 event = 15.5 Hz, 68% Garwood intervals.
-Plateau: subleading gen τ pT ≥ 80 GeV (938 events). All: every event with two gen visible τ in
-|η| < 2.1 (17,690 events, from the leading-pT plot).
+The `_ParT_30` paths: 11 events, 0.17 [0.12, 0.24] kHz each; the `_1kHz` paths: 64–65 events,
+0.99–1.01 [0.87, 1.15] kHz. On MinBiasF1000 (0.19 kHz per event): DeepTau 3, ParT 0, `_1kHz`
+4 each, `_ParT_30` 0 (DSA 1).
 
-| path | cut | min. bias ev. (kHz) | plateau ≥ 80 | 40–45 GeV | 45–50 GeV | all |
+### HH → bbττ
+
+Plateau: subleading gen τ pT ≥ 80 GeV (938 events). All (|η|): two gen τ in |η| < 2.1, any pT
+(17,690 events, from the leading-pT plot). Acc.: the acceptance above (pT > 25 GeV, 9,595 events),
+with gained / lost against the HLT path of the same rate.
+
+| path | cut | min. bias ev. | plateau ≥ 80 | 40–45 GeV | all (\|η\|) | acc. | gained / lost | ID-only acc. |
+|---|---|---|---|---|---|---|---|---|
+| L1 seed `pDoublePuppiTau52_52` | | 1306 (20.3 kHz) | 0.855 | 0.759 | 0.484 | | | |
+| HLT DeepTau HPS35 | | 66 (1.02 [0.90, 1.17] kHz) | 0.710 | 0.517 | 0.272 | 0.429 | | |
+| HLT ParT Tauh30 | | 11 (0.17 [0.12, 0.24] kHz) | 0.771 | 0.611 | 0.304 | 0.515 | | |
+| `DoubleBDT_ParT_30` | 0.808 | 11 | 0.799 | 0.608 | 0.353 | 0.533 | 724 / 552 | 0.436 |
+| `DoubleBDTReg_ParT_30` | 0.8152 | 11 | 0.797 | 0.597 | 0.339 | 0.521 | 683 / 623 | 0.441 |
+| `DoubleBDTJet_ParT_30` | 0.8367 | 11 | 0.809 | 0.603 | 0.362 | 0.544 | 816 / 537 | 0.462 |
+| `DoubleDS_ParT_30` | 0.919 | 11 | 0.796 | 0.606 | 0.357 | 0.542 | 769 / 513 | 0.443 |
+| `DoubleDSReg_ParT_30` | 0.9341 | 11 | 0.788 | 0.579 | 0.324 | 0.511 | 655 / 694 | 0.439 |
+| `DoubleDSJet_ParT_30` | 0.9464 | 11 | 0.794 | 0.580 | 0.351 | 0.533 | 799 / 628 | 0.453 |
+| `DoubleDSA_ParT_30` | 0.8598 | 11 | 0.713 | 0.537 | 0.272 | 0.464 | 348 / 832 | 0.440 |
+| `DoubleBDT_1kHz_35` | 0.363 | 64 | 0.838 | 0.687 | 0.418 | 0.597 | 1741 / 130 (vs DeepTau) | 0.454 |
+| `DoubleDS_1kHz_35` | 0.460 | 65 | 0.839 | 0.703 | 0.434 | 0.614 | 1866 / 92 | 0.463 |
+| `DoubleDSA_1kHz_35` | 0.398 | 65 | 0.836 | 0.700 | 0.430 | 0.610 | 1841 / 109 | 0.463 |
+| `DoubleDSReg_1kHz_26` | 0.607 | 64 | 0.837 | 0.690 | 0.422 | 0.616 | 1923 / 130 | 0.544 |
+
+Per bin of the subleading τ pT, `DoubleDS_ParT_30` against ParT (gained / lost, McNemar p):
+
+| subl. pT (GeV) | 25–30 | 30–35 | 35–40 | 40–45 | 45–50 | 50–60 | 60–80 | ≥ 80 |
+|---|---|---|---|---|---|---|---|---|
+| events | 1678 | 1411 | 1257 | 1054 | 800 | 1248 | 1209 | 938 |
+| ParT | 0.107 | 0.256 | 0.484 | 0.611 | 0.682 | 0.734 | 0.796 | 0.771 |
+| DS | 0.183 | 0.310 | 0.498 | 0.606 | 0.680 | 0.736 | 0.807 | 0.796 |
+| gained / lost | 180 / 53 | 137 / 60 | 106 / 88 | 76 / 81 | 57 / 59 | 81 / 78 | 75 / 61 | 57 / 33 (p = 0.015) |
+| DS ID-only | 0.062 | 0.218 | 0.385 | 0.519 | 0.594 | 0.635 | 0.728 | 0.700 |
+
+**Jet composition** of the tagged pair, HH in acceptance (fractions of jets; "pair with b": events
+with at least one b-matched leg). Leptons, c and unmatched are ≤ 1% everywhere.
+
+| path | events | τ | b | light | ττ pair | pair with b |
 |---|---|---|---|---|---|---|
-| L1 seed `pDoublePuppiTau52_52` | | 1306 (20.3) | 0.855 | 0.759 | 0.826 | 0.484 |
-| HLT DeepTau HPS35 | | 66 (1.02 [0.90, 1.17]) | 0.710 | 0.517 | 0.604 | 0.272 |
-| HLT ParT Tauh30 | | 11 (0.17 [0.12, 0.24]) | 0.771 | 0.611 | 0.682 | 0.304 |
-| TEST `DoubleBDT_ParT_30` | 0.808 | 11 (0.17) | 0.799 | 0.608 | 0.666 | 0.353 |
-| TEST `DoubleBDTReg_ParT_30` | 0.815 | 11 (0.17) | 0.797 | 0.597 | 0.655 | 0.339 |
-| TEST `DoubleDS_ParT_30` | 0.919 | 11 (0.17) | 0.796 | 0.606 | 0.680 | 0.357 |
-| TEST `DoubleDSReg_ParT_30` | 0.934 | 11 (0.17) | 0.788 | 0.579 | 0.647 | 0.324 |
-| TEST `DoubleDSA_ParT_30` | 0.860 | 11 (0.17) | 0.713 | 0.537 | 0.618 | 0.272 |
-| TEST `DoubleBDT_1kHz_35` | 0.363 | 64 (0.99 [0.87, 1.13]) | 0.838 | 0.687 | 0.761 | 0.418 |
-| TEST `DoubleDS_1kHz_35` | 0.460 | 65 (1.01 [0.88, 1.15]) | 0.839 | 0.703 | 0.787 | 0.434 |
-| TEST `DoubleDSA_1kHz_35` | 0.398 | 65 (1.01 [0.88, 1.15]) | 0.836 | 0.700 | 0.785 | 0.430 |
-| TEST `DoubleDSReg_1kHz_26` | 0.607 | 64 (0.99 [0.87, 1.13]) | 0.837 | 0.690 | 0.767 | 0.422 |
+| `DoubleDS_ParT_30`, all fired | 5196 | 0.85 | 0.13 | 0.01 | 0.71 | 0.26 |
+| `DoubleDS_ParT_30`, gained vs ParT | 769 | 0.67 | 0.31 | 0.02 | 0.36 | 0.60 |
+| `DoubleBDT_ParT_30`, gained | 724 | 0.67 | 0.29 | 0.02 | 0.37 | 0.57 |
+| `DoubleDSJet_ParT_30`, gained | 799 | 0.74 | 0.23 | 0.02 | 0.50 | 0.46 |
+| `DoubleDSA_ParT_30`, all fired | 4456 | 0.96 | 0.03 | 0.01 | 0.93 | 0.05 |
+| `DoubleDSA_ParT_30`, gained | 348 | 0.88 | 0.08 | 0.02 | 0.77 | 0.17 |
+| `DoubleDS_1kHz_35`, gained vs DeepTau | 1866 | 0.68 | 0.29 | 0.02 | 0.39 | 0.57 |
 
-On MinBiasF1000 (159,920 events, 0.19 kHz each): DeepTau 3, ParT 0, the `_1kHz` paths 4 each,
-the `_ParT_30` paths 0 (DSA 1).
+### DY (DYLL_M50, no b jets)
 
-- **At the DeepTau path's rate** the tagger paths reach 0.84 on the plateau, against 0.71 for
-  DeepTau (98% of the L1 seed), and 0.42–0.43 against 0.27 over the whole acceptance.
-- **At the ParT path's rate**, cut at 30 GeV like ParT, BDT and DeepSets are +0.02–0.03 above ParT
-  on the plateau (0.79–0.80 vs 0.77, 1.5–2 σ), equal near threshold (40–50 GeV), and +0.05 over
-  the whole acceptance (0.35–0.36 vs 0.30), mostly from low-pT τ. The rate itself has ±30%
-  statistical uncertainty (11 events).
-- The regressed pT does not help at this rate: the cut must tighten (DS 0.919 → 0.934), and it
-  costs 0.01–0.03. At 1 kHz it is equal (`DSReg_1kHz_26`).
-- The α = 0.1 DeepSets is worse at tight cuts (0.71 at the ParT rate), as in the WP table.
-- Below 30 GeV the BDT and DeepSets paths keep 0.11–0.16 of the events (ParT and DSA 0.04–0.07):
-  the other τ or a jet passes.
+Acceptance as above (2,764 events; few have a subleading τ above 60 GeV). Plateau: subleading
+τ pT ≥ 45 GeV (80 events).
+
+| path | acc. | gained / lost vs ParT (DeepTau) | McNemar p | ID-only | 35–40 GeV | 40–45 GeV | ≥ 45 GeV |
+|---|---|---|---|---|---|---|---|
+| L1 seed | 0.158 | | | | | 0.581 | 0.800 |
+| HLT ParT Tauh30 | **0.104** (287) | | | | 0.228 | 0.476 | 0.662 |
+| HLT DeepTau HPS35 | 0.059 (163) | | | | | | 0.562 |
+| `DoubleBDT_ParT_30` | 0.074 | 18 / 100 | < 1e-4 | 0.073 | 0.185 | 0.339 | 0.512 |
+| `DoubleBDTReg_ParT_30` | 0.082 | 29 / 89 | < 1e-4 | 0.081 | | | |
+| `DoubleBDTJet_ParT_30` | 0.087 | 39 / 85 | < 1e-4 | 0.086 | 0.204 | 0.339 | 0.512 |
+| `DoubleDS_ParT_30` | 0.076 | 20 / 97 | < 1e-4 | 0.074 | 0.185 | 0.387 | 0.512 |
+| `DoubleDSReg_ParT_30` | 0.081 | 34 / 96 | < 1e-4 | 0.080 | 0.201 | 0.347 | 0.512 |
+| `DoubleDSJet_ParT_30` | 0.082 | 36 / 97 | < 1e-4 | 0.080 | 0.188 | 0.323 | 0.487 |
+| `DoubleDSA_ParT_30` | 0.080 | 17 / 83 | < 1e-4 | 0.079 | 0.198 | 0.395 | 0.525 |
+| `DoubleBDT_1kHz_35` | 0.079 | 79 / 25 (DeepTau) | < 1e-4 | 0.073 | | | 0.650 |
+| `DoubleDS_1kHz_35` | 0.080 | 79 / 21 (DeepTau) | < 1e-4 | 0.076 | | | 0.675 |
+| `DoubleDSReg_1kHz_26` | 0.116 | 183 / 24 (DeepTau) | < 1e-4 | 0.114 | | | 0.700 |
+
+- In DY the tagged pairs in acceptance are τ-matched (98% ττ pairs), so ID-only ≈ fired.
+- Over all DY events the tagger paths fire in 4.6–6% of the events (α = 0.1: 1.0–1.3%), 96% of
+  the tagged jets being prompt e / μ (DY → ee, μμ); the HLT ParT and DeepTau paths fire in 5.4% and 5.1% of all DY events
+  but only 287 and 163 times in the ττ acceptance, so they too fire mostly on leptons.
+
+### Conclusion on τ ID
+
+- **The taggers do not beat ParT on genuine τ ID at the ParT rate.** On DY (no b jets) every
+  tagger path is below ParT: 0.074–0.087 against 0.104, losing 3–5 times more events than it gains
+  (p < 1e-4), and the deficit is largest at 40–60 GeV (0.32–0.39 vs 0.48–0.68). The cut on the jet
+  pT (as ParT) or on the regressed pT recovers only 0.005–0.013 of it.
+- **On HH the advantage over ParT is mostly b jets.** In the acceptance the DS path gains 769 and
+  loses 513 events, but 60% of the gained events have a b-matched leg. Below 35 GeV the gain is
+  large (0.18 vs 0.11 at 25–30 GeV) while the ID-only efficiency is below ParT (0.06). At
+  35–80 GeV the paths are equal (p > 0.2). Only the HH plateau ≥ 80 GeV keeps a +0.025 gain
+  (57 / 33, p = 0.015) whose composition is not separated here.
+- The α = 0.1 score removes the b jets (5% of the pairs with a b leg) and then sits below ParT on
+  HH (0.464 vs 0.515, 348 / 832).
+- **Against DeepTau at 1 kHz the taggers win on genuine τ**: on DY 0.079–0.116 vs 0.059
+  (79–183 gained / 21–25 lost), and on HH ID-only 0.45–0.54 vs DeepTau's 0.43 (all its
+  events, unclassified).
+- Caveats: DY ττ statistics are small above 50 GeV (80 events above 45 GeV); ParT's own pairs
+  cannot be classified, so ParT may also fire on b jets on HH; the ParT rate rests on 11
+  minimum-bias events.
 
 ## Regressed pT
 
@@ -306,13 +389,15 @@ From the worktree, after `source ../../env.sh` (1 core; the caches take about 1 
 about 5 min):
 
 ```bash
+cache_objects configs/V50nano/cache_objects/caching_170pre6_HLT_DYgen.yaml   # DY GenVisTau, GenJet (3 min)
 S=menu_tools/caching/make_hlt_jet_tautag_test.py
 nice python3 $S --sample HHTo2B2Tau --skim-sample hh
 nice python3 $S --sample DYLL_M50 --skim-sample dy
 nice python3 $S --sample MinBias --skim-sample minbias --max-file 1000 --out-sample MinBiasF1000
 nice python3 $S --sample MinBias --skim-sample minbias --events-l1pass --out-sample MinBiasL1Pass
 nice python3 scripts/test_tautag/wps.py                 # WPs -> wps.csv, wps_ptreg_scan.csv (20 s)
-nice python3 scripts/test_tautag/emulate_paths.py       # HLTTEST records, path rates (5 s)
+nice python3 scripts/test_tautag/emulate_paths.py       # HLTTEST records, path rates (1 min)
+nice python3 scripts/test_tautag/path_diagnosis.py      # paired comparison, jet composition (1 min)
 nice object_performance configs/V50nano/object_performance/test_tautag/*.yaml \
     --version V50nano_170pre6HLT_TESTtautag
 rsync -a outputs/V50nano_170pre6HLT_TESTtautag/ \

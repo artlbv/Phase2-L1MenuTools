@@ -118,6 +118,7 @@ SCORES_L1PASS = [os.path.join(HTAUPU, "deepsets", "topo_minbias.parquet")]
 OBJECTS = {
     "HHTo2B2Tau": [
         "GenVisTau",
+        "GenJet",
         "L1nnPuppiTau",
         "hltHpsPFTau",
         "hltAK4PuppiJetCorr",
@@ -125,7 +126,17 @@ OBJECTS = {
         "L1",
         "HLT",
     ],
-    "DYLL_M50": ["L1nnPuppiTau", "hltHpsPFTau", "hltAK4PuppiJetCorr", "Pileup"],
+    # GenVisTau, GenJet: cached later (configs/V50nano/cache_objects/caching_170pre6_HLT_DYgen.yaml)
+    "DYLL_M50": [
+        "L1nnPuppiTau",
+        "hltHpsPFTau",
+        "hltAK4PuppiJetCorr",
+        "Pileup",
+        "L1",
+        "HLT",
+        "GenVisTau",
+        "GenJet",
+    ],
     "MinBias": [
         "L1nnPuppiTau",
         "hltHpsPFTau",
