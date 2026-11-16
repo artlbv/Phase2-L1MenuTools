@@ -1,11 +1,14 @@
 """Plots of the purity / fake rate / multiplicity computed by `PurityCollection`.
 
-Run through `object_performance <config>`: every plot entry with a `purity:` block is handled
-here (and skipped by the efficiency plotter). Outputs go to
+Run through `object_performance <config>`: every plot entry with a `purity:` block is
+handled here (and skipped by the efficiency plotter). Outputs go to
 outputs/<version>/object_performance/purity/:
-  <plot>_<quantity>_vs_<vs>[_thr<t>]_<version>.{png,pdf,json}   all test objects overlaid
-  <plot>_<version>.yaml                                         copy of the plot config
+  <plot>_<quantity>_vs_<vs>[_thr<t>]_<version>.{png,pdf,json}
+      all test objects overlaid
+  <plot>_<version>.yaml
+      copy of the plot config
 """
+
 import json
 import math
 import os
@@ -16,12 +19,11 @@ import mplhep as hep
 import numpy as np
 import yaml
 
-from menu_tools.object_performance.plotter import Plotter
+from menu_tools.object_performance.plotter import Plotter, colors
 from menu_tools.object_performance.purity_collection import PurityCollection
 from menu_tools.utils import utils
 from menu_tools.utils.objects import Object, trigger_level
 from menu_tools.utils.plotting import add_watermark
-
 
 
 def _clean(values):
@@ -40,7 +42,9 @@ def _fmt_thr(t: float) -> str:
 
 
 class PurityPlotter(Plotter):
-    def __init__(self, plot_name: str, collection: PurityCollection, pu_value: int = 200):
+    def __init__(
+        self, plot_name: str, collection: PurityCollection, pu_value: int = 200
+    ):
         self.plot_name = plot_name
         self.collection = collection
         self.cfg = collection.cfg_plot
@@ -54,11 +58,32 @@ class PurityPlotter(Plotter):
         return os.path.join("outputs", self.version, "object_performance", "purity")
 
     def _label(self, obj_key: str) -> str:
+        if obj_key.endswith("+seed"):
+            return f"{self._label(obj_key.removesuffix('+seed'))} $\\wedge$ " + (
+                self.pur_cfg.seed_label
+            )
         label = Object(obj_key, version=self.cfg.version_for_objects).plot_label
         rng = obj_key.split(":")[2] if obj_key.count(":") >= 2 else "inclusive"
         return label if rng == "inclusive" else f"{label} ({rng})"
 
     # ---- labels --------------------------------------------------------------------
+
+    def _style(self, key: str) -> dict:
+        """Colour by test object (explicitly from the 10-colour list: the mplhep CMS
+        style resets the colour cycle to 6 colours); the seeded copy of an object has
+        its colour, a dashed line and open markers.
+        """
+        base = key.removesuffix("+seed")
+        # order of the test objects, also for seeded copies without a plain curve
+        plain = list(dict.fromkeys(k.removesuffix("+seed") for k in self.collection.objects))
+        style = {"color": colors[plain.index(base) % len(colors)]}
+        if key.endswith("+seed"):
+            style.update({"linestyle": "--", "markerfacecolor": "none"})
+        return style
+
+    @property
+    def _n_obj(self) -> str:
+        return f"$\\geq${self.pur_cfg.min_objects}"
 
     def _ylabel(self, quantity: str) -> str:
         lvl, rate = self.lvl, self.pur_cfg.rate
@@ -71,14 +96,24 @@ class PurityPlotter(Plotter):
         if quantity == "unmatched_per_event":
             return f"Unmatched {lead}{lvl} objects / event"
         if quantity == "objects_per_event":
-            return f"Leading {lvl} objects / event" if lead else f"{lvl} objects / event"
+            return (
+                f"Leading {lvl} objects / event" if lead else f"{lvl} objects / event"
+            )
         if quantity == "unmatched_density":
             return f"Unmatched {lead}{lvl} objects / event / bin"
         if quantity == "density":
             return f"{lvl} objects / event / bin"
         if quantity == "event_fraction":
-            what = f"unmatched {lvl} obj." if self.pur_cfg.mode == "fake_rate" else f"{lvl} obj."
-            return (f"Rate (events with $\\geq$1 {what})" if rate else f"Events with $\\geq$1 {what}") + unit
+            what = (
+                f"unmatched {lvl} obj."
+                if self.pur_cfg.mode == "fake_rate"
+                else f"{lvl} obj."
+            )
+            return (
+                f"Rate (events with {self._n_obj} {what})"
+                if rate
+                else f"Events with {self._n_obj} {what}"
+            ) + unit
         raise ValueError(quantity)
 
     def _xlabel(self, vs: str) -> str:
@@ -108,10 +143,28 @@ class PurityPlotter(Plotter):
             return f"Unmatched: no {gen} within $\\Delta R$ < {dr}"
         if quantity == "event_fraction" and self.pur_cfg.mode == "fake_rate":
             scale = r" $\times$ 31038 kHz" if self.pur_cfg.rate else ""
-            return f"Fraction of events with $\\geq$1 unmatched {lvl} object{scale}; no {gen} within $\\Delta R$ < {dr}"
+            return (
+                f"Fraction of events with {self._n_obj} unmatched {lvl} "
+                f"object{scale}; "
+                f"no {gen} within $\\Delta R$ < {dr}"
+            )
         if quantity == "event_fraction":
             scale = r" $\times$ 31038 kHz" if self.pur_cfg.rate else ""
-            return f"Fraction of events with $\\geq$1 {lvl} object above threshold{scale} (no gen matching)"
+            seed = (
+                f"; dashed: $\\wedge$ {self.pur_cfg.seed_label} (per-event bit)"
+                if self.pur_cfg.seed
+                else ""
+            )
+            norm = (
+                f"; per {self.pur_cfg.norm_events} events (the sample: the subset "
+                "that can pass)"
+                if self.pur_cfg.norm_events
+                else ""
+            )
+            return (
+                f"Fraction of events with {self._n_obj} {lvl} objects above "
+                f"threshold{scale} (no gen matching){seed}{norm}"
+            )
         return f"All {lvl} objects after ID / $\\eta$ cuts (no gen matching)"
 
     def _context(self, plot: dict) -> str:
@@ -123,8 +176,15 @@ class PurityPlotter(Plotter):
         return ", ".join(parts)
 
     def _fname(self, plot: dict) -> str:
-        thr = f"_thr{_fmt_thr(plot['threshold'])}" if plot["threshold"] is not None else ""
-        return os.path.join(self._outdir, f"{self.plot_name}_{plot['quantity']}_vs_{plot['vs']}{thr}_{self.version}")
+        thr = (
+            f"_thr{_fmt_thr(plot['threshold'])}"
+            if plot["threshold"] is not None
+            else ""
+        )
+        return os.path.join(
+            self._outdir,
+            f"{self.plot_name}_{plot['quantity']}_vs_{plot['vs']}{thr}_{self.version}",
+        )
 
     # ---- output --------------------------------------------------------------------
 
@@ -143,21 +203,36 @@ class PurityPlotter(Plotter):
             "leading_only": self.pur_cfg.leading_only,
             "rate_kHz": self.pur_cfg.rate and plot["quantity"] == "event_fraction",
             "n_events": self.collection.n_events,
+            "norm_events": self.pur_cfg.norm_events,
+            "min_objects": self.pur_cfg.min_objects,
+            "seed": (
+                dict(self.pur_cfg.seed, **(self.collection.seed_rate or {}))
+                if self.pur_cfg.seed
+                else None
+            ),
+            "rate_lines_kHz": self.pur_cfg.rate_lines or None,
+            "reference_bits": self.collection.reference_rates or None,
             "pu_variable": self.pur_cfg.pu_variable if plot["vs"] == "pu" else None,
-            "pileup_source": self.collection.pileup_source if plot["vs"] == "pu" else None,
+            "pileup_source": (
+                self.collection.pileup_source if plot["vs"] == "pu" else None
+            ),
         }
         for key, s in plot["series"].items():
-            entry = {"label": self._label(key), "match_dR": self.collection.objects[key]["dr"]}
+            entry = {
+                "label": self._label(key),
+                "match_dR": self.collection.objects[key]["dr"],
+            }
             if is_scan:
                 entry["thresholds"] = edges.tolist()
             else:
                 entry["edges"] = edges.tolist()
                 entry["xbins"] = (0.5 * (edges[1:] + edges[:-1])).tolist()
-            for k in ("y", "err_lo", "err_hi"):
-                entry[k] = _clean(s[k])
+            for k in ("y", "err_lo", "err_hi", "garwood_lo", "garwood_hi"):
+                if k in s:
+                    entry[k] = _clean(s[k])
             entry["num"] = [int(v) for v in s["num"]]
             entry["den"] = [int(v) for v in s["den"]]
-            for k in ("integral", "integral_n", "fit"):
+            for k in ("integral", "integral_n", "fit", "at_rate"):
                 if k in s:
                     entry[k] = s[k]
             out[key] = entry
@@ -170,11 +245,19 @@ class PurityPlotter(Plotter):
             return
         quantity, vs = plot["quantity"], plot["vs"]
         fig, ax = plt.subplots(figsize=(10, 10))
-        hep.cms.label(ax=ax, llabel="Phase-2 Simulation", com=14, rlabel=f"{self.pu_value} PU")
+        hep.cms.label(
+            ax=ax, llabel="Phase-2 Simulation", com=14, rlabel=f"{self.pu_value} PU"
+        )
         edges = np.asarray(plot["edges"], dtype=float)
         if vs == "threshold":
             x, xerr = edges, None
-            kwargs = {"capsize": 3, "marker": "o", "markersize": 6, "linestyle": "-", "linewidth": 1}
+            kwargs = {
+                "capsize": 3,
+                "marker": "o",
+                "markersize": 6,
+                "linestyle": "-",
+                "linewidth": 1,
+            }
         else:
             x, xerr = 0.5 * (edges[1:] + edges[:-1]), 0.5 * np.diff(edges)
             kwargs = {"capsize": 3, "marker": "o", "markersize": 7, "linestyle": "none"}
@@ -185,31 +268,108 @@ class PurityPlotter(Plotter):
             if s.get("fit"):
                 label += f" (slope {s['fit']['slope']:.2g}/PU)"
             y = np.asarray(s["y"], dtype=float)
-            ax.errorbar(x, y, yerr=[s["err_lo"], s["err_hi"]], xerr=xerr, label=label, **kwargs)
+            ax.errorbar(
+                x,
+                y,
+                yerr=[s["err_lo"], s["err_hi"]],
+                xerr=xerr,
+                label=label,
+                **{**kwargs, **self._style(key)},
+            )
             if s.get("fit") and vs == "pu":
                 xx = np.array([edges[0], edges[-1]])
-                ax.plot(xx, s["fit"]["intercept"] + s["fit"]["slope"] * xx, ls=":", c=ax.lines[-1].get_color(), lw=1)
+                ax.plot(
+                    xx,
+                    s["fit"]["intercept"] + s["fit"]["slope"] * xx,
+                    ls=":",
+                    c=ax.lines[-1].get_color(),
+                    lw=1,
+                )
 
+        is_rate = quantity == "event_fraction" and self.pur_cfg.rate
+        if is_rate and (seed := self.collection.seed_rate):
+            ax.axhline(
+                seed["y"],
+                ls="-.",
+                c="k",
+                lw=1,
+                label=f"{self.pur_cfg.seed_label} alone: {seed['y']:.3g} kHz "
+                f"({seed['n']} events)",
+            )
+        if is_rate:
+            ref_styles = [(0, (6, 2)), (0, (1, 1)), (0, (3, 1, 1, 1, 1, 1)), "-"]
+            for i, ref in enumerate(self.collection.reference_rates):
+                ax.axhline(
+                    ref["y"],
+                    ls=ref_styles[i % len(ref_styles)],
+                    c="0.35",
+                    lw=1.6,
+                    label=f"{ref['label']}: {ref['y']:.3g} kHz ({ref['n']} events)",
+                )
+            for line in self.pur_cfg.rate_lines:
+                ax.axhline(line, ls=":", c="k", lw=1.2)
+                ax.text(
+                    edges[-1],
+                    line * 1.08,
+                    f"{line:g} kHz",
+                    ha="right",
+                    va="bottom",
+                    fontsize=14,
+                )
         ax.set_xlabel(self._xlabel(vs))
         ax.set_ylabel(self._ylabel(quantity))
-        ax.set_xlim(edges[0] - (0.02 * (edges[-1] - edges[0]) if vs == "threshold" else 0), edges[-1])
+        ax.set_xlim(
+            edges[0] - (0.02 * (edges[-1] - edges[0]) if vs == "threshold" else 0),
+            edges[-1],
+        )
         if quantity in ("purity", "fake_fraction"):
             ax.set_ylim(0, 1.35)
             ax.axhline(1, ls=":", c="k", lw=0.8)
         else:
-            y = np.concatenate([np.asarray(s["y"], float) for s in plot["series"].values()])
-            y_hi = y + np.concatenate([np.asarray(s["err_hi"], float) for s in plot["series"].values()])
+            y = np.concatenate(
+                [np.asarray(s["y"], float) for s in plot["series"].values()]
+            )
+            y_hi = y + np.concatenate(
+                [np.asarray(s["err_hi"], float) for s in plot["series"].values()]
+            )
             y, y_hi = y[np.isfinite(y) & (y > 0)], y_hi[np.isfinite(y_hi) & (y_hi > 0)]
             if len(y) and vs == "threshold":
                 # threshold scans span orders of magnitude
                 ax.set_yscale("log")
-                ax.set_ylim(y.min() / 3, y_hi.max() * 30)
+                lines = (
+                    [self.collection.seed_rate["y"]]
+                    if self.collection.seed_rate
+                    else []
+                )
+                if quantity == "event_fraction" and self.pur_cfg.rate:
+                    lines += self.pur_cfg.rate_lines
+                    lines += [
+                        r["y"] for r in self.collection.reference_rates if r["y"] > 0
+                    ]
+                ymin = min([y.min()] + lines)
+                ax.set_ylim(ymin / 3, max([y_hi.max()] + lines) * 30)
             elif len(y_hi):
                 ax.set_ylim(0, y_hi.max() * 1.45)
-        # The definition takes the top line of the axes, the legend goes below it.
-        ax.legend(loc="upper right", bbox_to_anchor=(1, 0.95), frameon=False, fontsize=16,
-                  title=self._context(plot), title_fontsize=16)
-        ax.text(0.02, 0.98, self._definition(quantity), transform=ax.transAxes, fontsize=11, va="top", wrap=True)
+        # The definition takes the top line of the axes, the legend goes below it; with
+        # many curves (e.g. with `seed`) below the axes.
+        many = len(ax.get_legend_handles_labels()[0]) > 8
+        ax.legend(
+            loc="upper left" if many else "upper right",
+            bbox_to_anchor=(0, -0.17) if many else (1, 0.95),
+            frameon=False,
+            fontsize=14 if many else 16,
+            title=self._context(plot),
+            title_fontsize=16,
+        )
+        ax.text(
+            0.02,
+            0.98,
+            self._definition(quantity),
+            transform=ax.transAxes,
+            fontsize=11,
+            va="top",
+            wrap=True,
+        )
         ax.tick_params(direction="in")
         fig.tight_layout()
         fname = self._fname(plot)
@@ -223,8 +383,12 @@ class PurityPlotter(Plotter):
         os.makedirs(self._outdir, exist_ok=True)
         for plot in self.collection.plots:
             self._plot_one(plot)
-        with open(os.path.join(self._outdir, f"{self.plot_name}_{self.version}.yaml"), "w") as f:
-            yaml.dump({self.plot_name: self.cfg.config_dict}, f, default_flow_style=False)
+        with open(
+            os.path.join(self._outdir, f"{self.plot_name}_{self.version}.yaml"), "w"
+        ) as f:
+            yaml.dump(
+                {self.plot_name: self.cfg.config_dict}, f, default_flow_style=False
+            )
 
 
 class PurityCentral:
@@ -236,21 +400,33 @@ class PurityCentral:
         self.override_version = override_version
         parts = os.path.normpath(cfg_plots_path).split(os.sep)
         idx = parts.index("configs") if "configs" in parts else -1
-        self.config_version = parts[idx + 1] if 0 <= idx < len(parts) - 1 else "unknown_version"
+        self.config_version = (
+            parts[idx + 1] if 0 <= idx < len(parts) - 1 else "unknown_version"
+        )
 
     def run(self) -> None:
         for plot_name, cfg_plot in self.cfg_plots.items():
             if not isinstance(cfg_plot, dict) or "purity" not in cfg_plot:
                 continue
-            print(f">>> Purity {plot_name} ({cfg_plot['purity'].get('mode', 'purity')}) <<<")
+            print(
+                f">>> Purity {plot_name} ({cfg_plot['purity'].get('mode', 'purity')}) "
+                "<<<"
+            )
             collection = PurityCollection(
-                cfg_plot, plot_name, config_version=self.config_version, override_version=self.override_version
+                cfg_plot,
+                plot_name,
+                config_version=self.config_version,
+                override_version=self.override_version,
             )
             try:
                 collection.create()
             except FileNotFoundError as err:
-                # e.g. a MinBias entry run on a version without minimum bias: skip, don't stop the file
+                # e.g. a MinBias entry run on a version without minimum bias: skip,
+                # don't stop the file
                 print(f"WARNING: skipping {plot_name} on {collection.version}: {err}")
                 continue
             PurityPlotter(plot_name, collection).plot()
-            print(f"INFO: purity plots in outputs/{collection.version}/object_performance/purity")
+            print(
+                "INFO: purity plots in "
+                f"outputs/{collection.version}/object_performance/purity"
+            )

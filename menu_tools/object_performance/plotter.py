@@ -1,12 +1,14 @@
 import argparse
 import sys
 import json
+import textwrap
 import os
-from typing import Any
+from typing import Any, Optional
 import warnings
 import yaml
 
 import matplotlib as mpl
+from cycler import cycler
 import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
@@ -14,11 +16,26 @@ from tqdm import tqdm
 
 from menu_tools.object_performance.turnon_collection import TurnOnCollection
 from menu_tools.object_performance.config import PerformancePlotConfig
+from menu_tools.object_performance.split import (
+    OTHER,
+    category_counts,
+    integrated_efficiency,
+    safe_name,
+)
 from menu_tools.object_performance.scaling_collection import ScalingCollection
 from menu_tools.utils import utils
 from menu_tools.utils.objects import Object, is_hlt_object, trigger_level
 from menu_tools.utils.plotting import add_watermark
-from menu_tools.utils.versions import add_version_argument, get_versions, run_per_version
+from menu_tools.utils.versions import (
+    add_version_argument,
+    get_versions,
+    parse_args,
+    run_per_version,
+)
+
+# Plot entries with one of these blocks are not turn-ons: they are run by their own
+# *Central class (see `main`) and skipped by the efficiency plotter.
+SPECIAL_BLOCKS = ("resolution", "path_efficiency", "purity", "btag")
 
 
 colors = [
@@ -33,11 +50,13 @@ colors = [
     "#717581",
     "#92dadd",
 ]
-mpl.rcParams["axes.prop_cycle"] = mpl.cycler(color=colors)
+mpl.rcParams["axes.prop_cycle"] = cycler(color=colors)
 plt.style.use(hep.style.CMS)
 
 
 class Plotter:
+    pu_value: int
+
     def _make_output_dirs(self, version: str) -> None:
         os.makedirs(f"outputs/{version}/object_performance/turnons", exist_ok=True)
         os.makedirs(
@@ -47,7 +66,9 @@ class Plotter:
 
     def _create_new_plot(self) -> tuple[plt.Figure, plt.Axes]:
         fig, ax = plt.subplots(figsize=(10, 10))
-        hep.cms.label(ax=ax, llabel="Phase-2 Simulation", com=14, rlabel=f"{self.pu_value} PU")
+        hep.cms.label(
+            ax=ax, llabel="Phase-2 Simulation", com=14, rlabel=f"{self.pu_value} PU"
+        )
         return fig, ax
 
 
@@ -81,31 +102,67 @@ class EfficiencyPlotter(Plotter):
         ax.set_ylabel(rf"{ylabel}")
         ax.set_xlim(self.cfg.bin_min, self.cfg.bin_max)
         ax.tick_params(direction="in")
-        watermark = f"{self.version}_{self.plot_name}_{self.threshold} ({self.pu_value})"
+        watermark = (
+            f"{self.version}_{self.plot_name}_{self.threshold} ({self.pu_value})"
+        )
         fig.tight_layout()
         add_watermark(ax, watermark)
 
     def _extra_style(self, obj_key: str) -> dict:
-        """Marker style of an extra (`l1_seed`) curve; empty for the configured test objects."""
+        """Marker style of an extra (`l1_seed`) curve; empty for the configured test
+        objects.
+        """
         extra = getattr(self.turnon_collection, "extra_curves", {})
         return extra.get(obj_key, {}).get("style", {})
 
+    def _json_header(self, suffix: str = "") -> dict[str, Any]:
+        return {
+            "xlabel": self.cfg.xlabel,
+            "ylabel": self.cfg.ylabel.replace("<threshold>", str(self.threshold)),
+            "watermark": f"{self.version}_{self.plot_name}{suffix}_{self.threshold}",
+        }
+
+    def _curve_json(
+        self,
+        label: str,
+        efficiency: np.ndarray,
+        yerr: np.ndarray,
+        xerr: np.ndarray,
+        style: dict,
+    ) -> dict[str, Any]:
+        """JSON entry of one efficiency curve (bins with a finite efficiency)."""
+        xbins = self.turnon_collection.bins
+        xbins = 0.5 * (xbins[1:] + xbins[:-1])
+        yerr = np.array(
+            [yerr[0][~np.isnan(efficiency)], yerr[1][~np.isnan(efficiency)]]
+        )
+        xerr = xerr[np.isfinite(efficiency)]
+        xbins = xbins[np.isfinite(efficiency)]
+        efficiency = efficiency[np.isfinite(efficiency)]
+        return {
+            "label": label,
+            "efficiency": efficiency.tolist(),
+            "efficiency_err": yerr.tolist(),
+            "xbins": xbins.tolist(),
+            "err_kwargs": {
+                "xerr": xerr.tolist(),
+                "capsize": 3,
+                "marker": "o",
+                "markersize": 8,
+                **style,
+            },
+        }
+
     def _save_json(self, file_name):
-        plot = {}
-        plot["xlabel"] = self.cfg.xlabel
-        plot["ylabel"] = self.cfg.ylabel.replace("<threshold>", str(self.threshold))
-        plot["watermark"] = f"{self.version}_{self.plot_name}_" f"{self.threshold}"
+        plot = self._json_header()
 
         for obj_key, gen_hist_trig in self.turnon_collection.hists.items():
             if obj_key == "ref":
                 continue
-            
+
             # Label from the object config (version from the config, which respects
             # overrides), or of an extra `l1_seed` curve
             label = self.turnon_collection.curve_label(obj_key)
-
-            xbins = self.turnon_collection.bins
-            xbins = 0.5 * (xbins[1:] + xbins[:-1])
 
             if self.cfg.iso_vs_eff_plot:
                 efficiency = self._get_iso_vs_eff_hist(gen_hist_trig[0])
@@ -115,30 +172,9 @@ class EfficiencyPlotter(Plotter):
                 efficiency, yerr = self.turnon_collection.get_efficiency(obj_key)
                 xerr = self.turnon_collection.xerr(obj_key)
 
-            yerr = np.array(
-                [yerr[0][~np.isnan(efficiency)], yerr[1][~np.isnan(efficiency)]]
+            plot[obj_key] = self._curve_json(
+                label, efficiency, yerr, xerr, self._extra_style(obj_key)
             )
-            xerr = xerr[np.isfinite(efficiency)]
-            xbins = xbins[np.isfinite(efficiency)]
-            efficiency = efficiency[np.isfinite(efficiency)]
-
-            xerr = xerr.tolist()
-            yerr = yerr.tolist()
-            xbins = xbins.tolist()
-            efficiency = efficiency.tolist()
-
-            plot[obj_key] = {}
-            plot[obj_key]["label"] = label
-            plot[obj_key]["efficiency"] = efficiency
-            plot[obj_key]["efficiency_err"] = yerr
-            plot[obj_key]["xbins"] = xbins
-            plot[obj_key]["err_kwargs"] = {
-                "xerr": xerr,
-                "capsize": 3,
-                "marker": "o",
-                "markersize": 8,
-                **self._extra_style(obj_key),
-            }
 
         with open(f"{file_name}", "w") as outfile:
             outfile.write(json.dumps(plot, indent=4))
@@ -305,6 +341,117 @@ class EfficiencyPlotter(Plotter):
 
         plt.close()
 
+    # ------------------------------------------------------------------------------------------
+    # `split_by` (split.py)
+    # ------------------------------------------------------------------------------------------
+    def _split_plots(
+        self,
+    ) -> list[tuple[str, str, list[tuple[str, str, dict, str, dict]]]]:
+        """The split plots: (file suffix, legend title, curves); a curve is (JSON key,
+        label, hists, key in hists, style)."""
+        coll = self.turnon_collection
+        split = self.cfg.split_by
+        keys = [k for k in coll.hists if k != "ref"]
+        plots = []
+        if split.layout == "per_object":
+            for key in keys:
+                n_all = coll.hists["ref"][key][0].sum()
+                curves = [("inclusive", "All", coll.hists, key, {"color": "k"})]
+                for i, (cat, hists) in enumerate(coll.split_hists.items()):
+                    frac = hists["ref"][key][0].sum() / n_all if n_all else 0.0
+                    curves.append(
+                        (cat, f"{cat} ({frac:.0%})", hists, key, {"color": f"C{i}"})
+                    )
+                plots.append((safe_name(key), coll.curve_label(key), curves))
+        else:
+            for cat, hists in coll.split_hists.items():
+                curves = [
+                    (key, coll.curve_label(key), hists, key, self._extra_style(key))
+                    for key in keys
+                ]
+                plots.append((safe_name(cat), cat, curves))
+        return plots
+
+    def _split_fractions(self) -> dict[str, Any]:
+        """Category table of the split: the composition of all reference objects (after
+        the reference cuts), and per curve the denominators / numerators and integrated
+        efficiencies per category (in `summary_range`, default the whole binning)."""
+        coll = self.turnon_collection
+        split = self.cfg.split_by
+        bins = coll.bins
+        out: dict[str, Any] = {
+            **self._json_header(split.tag),
+            "field": split.field,
+            "categories": split.categories,
+            "summary_range": list(split.summary_range or (bins[0], bins[-1])),
+            "reference": category_counts(coll.split_ref_values, split),
+            "curves": {},
+        }
+        for key in [k for k in coll.hists if k != "ref"]:
+            entry: dict[str, Any] = {"label": coll.curve_label(key)}
+            groups = [("inclusive", coll.hists)] + list(coll.split_hists.items())
+            for name, hists in groups:
+                entry[name] = integrated_efficiency(
+                    hists[key][0], hists["ref"][key][0], bins, split.summary_range
+                )
+            n_den = entry["inclusive"]["n_den"]
+            n_cat = sum(entry[c]["n_den"] for c in coll.split_hists)
+            entry[OTHER] = {"n_den": n_den - n_cat}
+            for name, _ in groups:
+                entry[name]["fraction"] = (
+                    entry[name]["n_den"] / n_den if n_den else None
+                )
+            out["curves"][key] = entry
+        return out
+
+    @utils.ignore_warnings
+    def _plot_split(self) -> None:
+        split = self.cfg.split_by
+        coll = self.turnon_collection
+        xbins = coll.bins
+        xbins = 0.5 * (xbins[1:] + xbins[:-1])
+        for suffix, title, curves in self._split_plots():
+            fig, ax = self._create_new_plot()
+            plot = self._json_header(f"{split.tag}_{suffix}")
+            for json_key, label, hists, key, style in curves:
+                efficiency, yerr = coll.get_efficiency(key, hists)
+                ax.errorbar(
+                    xbins,
+                    efficiency,
+                    yerr=yerr,
+                    label=label,
+                    capsize=3,
+                    marker="o",
+                    markersize=8,
+                    **style,
+                )
+                plot[json_key] = self._curve_json(
+                    label, efficiency, yerr, coll.xerr(key), style
+                )
+            self._style_plot(fig, ax)
+            # Long titles (e.g. the l1_seed label) are wrapped, mathtext kept intact
+            if len(title) > 36 and "$" not in title:
+                title = textwrap.fill(title, 36)
+            ax.legend(loc="best", frameon=False, title=title, title_fontsize=18)
+            ax.set_ylim(0, 1.1)
+            fname = os.path.join(
+                self._outdir_turnons,
+                f"{self.plot_name}{split.tag}_{suffix}_{self.threshold}_"
+                f"{self.version}",
+            )
+            plt.savefig(f"{fname}.png", bbox_inches="tight")
+            plt.savefig(f"{fname}.pdf", bbox_inches="tight")
+            with open(f"{fname}.json", "w") as f:
+                f.write(json.dumps(plot, indent=4))
+            plt.close(fig)
+
+        fname = os.path.join(
+            self._outdir_turnons,
+            f"{self.plot_name}{split.tag}_fractions_{self.threshold}_{self.version}",
+        )
+        with open(f"{fname}.json", "w") as f:
+            f.write(json.dumps(self._split_fractions(), indent=4))
+
     def plot(self):
         self._make_output_dirs(self.version)
         if self.cfg.iso_vs_eff_plot:
@@ -312,6 +459,8 @@ class EfficiencyPlotter(Plotter):
         else:
             self._plot_efficiency_curve()
             self._plot_raw_counts()
+            if self.cfg.split_by is not None:
+                self._plot_split()
 
 
 class EfficiencyCentral:
@@ -319,7 +468,7 @@ class EfficiencyCentral:
     Class that orchestrates the plotting of
     """
 
-    def __init__(self, cfg_plots_path: str, override_version: str = None):
+    def __init__(self, cfg_plots_path: str, override_version: Optional[str] = None):
         with open(cfg_plots_path, "r") as f:
             self.cfg_plots = yaml.safe_load(f)
         self.override_version = override_version
@@ -356,22 +505,33 @@ class EfficiencyCentral:
         for it and passes it to the EfficiencyPlotter for
         plotting.
         """
-        version = self.override_version if self.override_version else self.config_version
+        version = (
+            self.override_version if self.override_version else self.config_version
+        )
         print(f"INFO: Loading cached inputs from cache/{version}")
         print(f"INFO: Saving outputs to outputs/{version}/object_performance")
-        print(f"INFO: Loading object configs from configs/{self.config_version}/objects")
+        print(
+            f"INFO: Loading object configs from configs/{self.config_version}/objects"
+        )
 
         for plot_name, cfg_plot in self.cfg_plots.items():
-            if "resolution" in cfg_plot or "path_efficiency" in cfg_plot or "purity" in cfg_plot:
-                continue  # handled by ResolutionCentral / PathEfficiencyCentral / PurityCentral
+            if any(k in cfg_plot for k in SPECIAL_BLOCKS):
+                continue  # handled by ResolutionCentral, PathEfficiencyCentral, ...
             # The previous plotter also holds the old collection; release both
             # before building the next, so two plots' arrays are never held at once.
             turnon_collection = plotter = None
             for threshold in self.get_thresholds(cfg_plot):
                 print(f">>> Turn On {plot_name} ({threshold} GeV) <<<")
-                # Only the final histogramming depends on the threshold, so build underlying turnon-collection once per plot.
+                # Only the final histogramming depends on the threshold, so build
+                # underlying turnon-collection once per plot.
                 if turnon_collection is None:
-                    turnon_collection = TurnOnCollection(cfg_plot, threshold, plot_name, config_version=self.config_version, override_version=self.override_version)
+                    turnon_collection = TurnOnCollection(
+                        cfg_plot,
+                        threshold,
+                        plot_name,
+                        config_version=self.config_version,
+                        override_version=self.override_version,
+                    )
                     turnon_collection.create_hists()
                 else:
                     turnon_collection.set_threshold(threshold)
@@ -469,14 +629,18 @@ class ScalingPlotter(Plotter):
         ## save config
         with open(f"{plot_fname}.yaml", "w") as outfile:
             yaml.dump(
-                {self.plot_name: self.plot_config.config_dict}, outfile, default_flow_style=False
+                {self.plot_name: self.plot_config.config_dict},
+                outfile,
+                default_flow_style=False,
             )
 
         plt.close()
 
 
 class ScalingCentral:
-    def __init__(self, cfg_plots_path: str, override_version: str = None) -> None:
+    def __init__(
+        self, cfg_plots_path: str, override_version: Optional[str] = None
+    ) -> None:
         with open(cfg_plots_path, "r") as f:
             self.cfg_plots = yaml.safe_load(f)
         with open("./configs/scaling_thresholds.yaml", "r") as f:
@@ -505,7 +669,9 @@ class ScalingCentral:
 
     @staticmethod
     def _get_scaling_group(cfg_plot) -> str:
-        """Object group (key of configs/scaling_thresholds.yaml) from the test object names."""
+        """Object group (key of configs/scaling_thresholds.yaml) from the test object
+        names.
+        """
         if any("Muon" in x for x in cfg_plot["test_objects"]):
             return "Muon"
         if any(
@@ -560,14 +726,23 @@ class ScalingCentral:
             yaml.dump({"slope": float(a), "offset": float(b)}, f)
 
     def run(self):
-        version = self.override_version if self.override_version else self.config_version
+        version = (
+            self.override_version if self.override_version else self.config_version
+        )
         print(f"INFO: Loading cached inputs from cache/{version}")
         print(f"INFO: Saving outputs to outputs/{version}/object_performance")
-        print(f"INFO: Loading object configs from configs/{self.config_version}/objects")
+        print(
+            f"INFO: Loading object configs from configs/{self.config_version}/objects"
+        )
         print(f"INFO: Saving scalings to outputs/{version}/object_performance/scalings")
 
         for plot_name, cfg_plot in self.cfg_plots.items():
-            plot_config = PerformancePlotConfig(cfg_plot, plot_name, config_version=self.config_version, override_version=self.override_version)
+            plot_config = PerformancePlotConfig(
+                cfg_plot,
+                plot_name,
+                config_version=self.config_version,
+                override_version=self.override_version,
+            )
             if not plot_config.compute_scalings:
                 continue
             print(f">>> Scalings {plot_name} <<<")
@@ -581,8 +756,15 @@ class ScalingCentral:
                 str(test_obj): self._get_scaling_thresholds(cfg_plot, test_obj)
                 for test_obj in plot_config.test_object_instances
             }
-            all_thds = list(dict.fromkeys(t for thds in thds_by_obj.values() for t in thds))
-            turnon_collection = TurnOnCollection(cfg_plot, all_thds[0], config_version=self.config_version, override_version=self.override_version)
+            all_thds = list(
+                dict.fromkeys(t for thds in thds_by_obj.values() for t in thds)
+            )
+            turnon_collection = TurnOnCollection(
+                cfg_plot,
+                all_thds[0],
+                config_version=self.config_version,
+                override_version=self.override_version,
+            )
             turnon_collection.create_hists()
             scaling_pct = turnon_collection.cfg_plot.scaling_pct
             method = turnon_collection.cfg_plot.scaling_method
@@ -592,7 +774,9 @@ class ScalingCentral:
                 turnon_collection.set_threshold(threshold)
                 for test_obj in plot_config.test_object_instances:
                     if threshold in thds_by_obj[str(test_obj)]:
-                        results[str(test_obj), threshold] = scaling_collection._compute_scalings(
+                        results[
+                            str(test_obj), threshold
+                        ] = scaling_collection._compute_scalings(
                             turnon_collection, test_obj, scaling_pct, method
                         )
 
@@ -632,7 +816,7 @@ def main():
     )
     parser.add_argument("-s", "--scalings_only", action="store_true")
     add_version_argument(parser)
-    args = parser.parse_args()
+    args = parse_args(parser)
 
     def run(version):
         for path_cfg_plot in args.cfg_plots:
@@ -644,13 +828,19 @@ def main():
             scalings.run()
 
             if not args.scalings_only:
-                # Plot entries with a `resolution:` block (imported here: it imports this module)
-                from menu_tools.object_performance.resolution_plotter import ResolutionCentral
+                # Plot entries with a `resolution:` block (imported here: it imports
+                # this module)
+                from menu_tools.object_performance.resolution_plotter import (
+                    ResolutionCentral,
+                )
 
                 ResolutionCentral(path_cfg_plot, override_version=version).run()
 
-                # Plot entries with a `path_efficiency:` block (L1 seed / HLT path efficiencies)
-                from menu_tools.object_performance.path_efficiency import PathEfficiencyCentral
+                # Plot entries with a `path_efficiency:` block (L1 seed / HLT path
+                # efficiencies)
+                from menu_tools.object_performance.path_efficiency import (
+                    PathEfficiencyCentral,
+                )
 
                 PathEfficiencyCentral(path_cfg_plot, override_version=version).run()
 
@@ -658,6 +848,11 @@ def main():
                 from menu_tools.object_performance.purity_plotter import PurityCentral
 
                 PurityCentral(path_cfg_plot, override_version=version).run()
+
+                # Plot entries with a `btag:` block (b-tag efficiency / mis-id, ROC)
+                from menu_tools.object_performance.btag_plotter import BTagCentral
+
+                BTagCentral(path_cfg_plot, override_version=version).run()
 
     run_per_version(get_versions(parser, args), run)
 

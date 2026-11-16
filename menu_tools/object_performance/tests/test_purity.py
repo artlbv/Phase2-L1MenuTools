@@ -4,6 +4,7 @@ trigger objects per event (parquet files in tmp_path, constants.CACHE_DIR monkey
 
 Run from the repository root (object definitions are read from configs/V50nano/objects).
 """
+
 import awkward as ak
 import numpy as np
 import pytest
@@ -43,7 +44,9 @@ def _make_events(seed=1):
         fp = rng.uniform(-0.3, 0.3, n_fake[i])
         trg_eta.append(list(ge + 0.05) + list(fe))
         trg_phi.append(list(gp - 0.05) + list(fp))
-        trg_pt.append(list(rng.uniform(20, 60, n_gen[i])) + list(rng.uniform(2, 30, n_fake[i])))
+        trg_pt.append(
+            list(rng.uniform(20, 60, n_gen[i])) + list(rng.uniform(2, 30, n_fake[i]))
+        )
         is_fake.append([False] * n_gen[i] + [True] * n_fake[i])
     gen = {"pt": gen_pt, "eta": gen_eta, "phi": gen_phi, "pdgId": gen_pdg}
     trg = {"pt": trg_pt, "eta": trg_eta, "phi": trg_phi}
@@ -51,7 +54,9 @@ def _make_events(seed=1):
 
 
 def _write(path, prefix, fields):
-    arr = ak.zip({f"{prefix}_{k}": ak.Array(v) for k, v in fields.items()}, depth_limit=1)
+    arr = ak.zip(
+        {f"{prefix}_{k}": ak.Array(v) for k, v in fields.items()}, depth_limit=1
+    )
     ak.to_parquet(arr, str(path))
 
 
@@ -70,8 +75,10 @@ def cache(tmp_path, monkeypatch, events):
     # Pileup in the separate <version>PU cache (as V50nano_170X1026PU): found by the fallback
     dpu = tmp_path / f"{VERSION}PU"
     dpu.mkdir()
-    ak.to_parquet(ak.zip({"Pileup_nPU": pu, "Pileup_nTrueInt": np.full(N_EVENTS, 200.0)}),
-                  str(dpu / f"{VERSION}PU_{SAMPLE}_Pileup.parquet"))
+    ak.to_parquet(
+        ak.zip({"Pileup_nPU": pu, "Pileup_nTrueInt": np.full(N_EVENTS, 200.0)}),
+        str(dpu / f"{VERSION}PU_{SAMPLE}_Pileup.parquet"),
+    )
     monkeypatch.setattr(constants, "CACHE_DIR", str(tmp_path))
     return tmp_path
 
@@ -88,14 +95,32 @@ def _cfg(mode, **extra):
         "thresholds": [0, 10],
     }
     if mode != "multiplicity":
-        purity["reference_gen"] = {"object": "GenPart", "cuts": ["abs({pdgId}) == 13"], "label": "gen mu"}
+        purity["reference_gen"] = {
+            "object": "GenPart",
+            "cuts": ["abs({pdgId}) == 13"],
+            "label": "gen mu",
+        }
     purity.update(extra)
-    return {"sample": SAMPLE, "version": VERSION, "test_objects": {TEST_OBJ: "pt"}, "purity": purity}
+    return {
+        "sample": SAMPLE,
+        "version": VERSION,
+        "test_objects": {TEST_OBJ: "pt"},
+        "purity": purity,
+    }
 
 
 def _plot(coll, quantity, vs, threshold=None):
-    hits = [p for p in coll.plots if p["quantity"] == quantity and p["vs"] == vs and p["threshold"] == threshold]
-    assert len(hits) == 1, (quantity, vs, threshold, [(p["quantity"], p["vs"], p["threshold"]) for p in coll.plots])
+    hits = [
+        p
+        for p in coll.plots
+        if p["quantity"] == quantity and p["vs"] == vs and p["threshold"] == threshold
+    ]
+    assert len(hits) == 1, (
+        quantity,
+        vs,
+        threshold,
+        [(p["quantity"], p["vs"], p["threshold"]) for p in coll.plots],
+    )
     return next(iter(hits[0]["series"].values()))
 
 
@@ -146,7 +171,9 @@ def test_purity(cache, events):
 
     # vs pu with threshold 10: objects with pt >= 10 in events of each pu bin
     s = _plot(coll, "purity", "pu", 10.0)
-    ev = ak.to_numpy(ak.flatten(ak.broadcast_arrays(ak.local_index(is_fake, axis=0), is_fake)[0]))
+    ev = ak.to_numpy(
+        ak.flatten(ak.broadcast_arrays(ak.local_index(is_fake, axis=0), is_fake)[0])
+    )
     sel = pt >= 10
     pu_obj = pu[ev]
     for i, (a, b) in enumerate([(150, 200), (200, 250)]):
@@ -176,7 +203,9 @@ def test_fake_rate(cache, events):
         n_unm = ak.to_numpy(ak.sum(is_fake & (pts >= thr), axis=1))
         s = _plot(coll, "unmatched_per_event", "threshold")
         assert s["y"][i_thr] == pytest.approx(n_unm.mean())
-        assert s["err_lo"][i_thr] == pytest.approx(n_unm.std(ddof=1) / np.sqrt(N_EVENTS))
+        assert s["err_lo"][i_thr] == pytest.approx(
+            n_unm.std(ddof=1) / np.sqrt(N_EVENTS)
+        )
         s = _plot(coll, "event_fraction", "threshold")
         assert s["y"][i_thr] == pytest.approx((n_unm > 0).mean())  # not MinBias: no kHz
     s = _plot(coll, "fake_fraction", "pt")
@@ -184,10 +213,15 @@ def test_fake_rate(cache, events):
     pt = ak.to_numpy(ak.flatten(pts))
     fake = ak.to_numpy(ak.flatten(is_fake))
     edges = np.array([0, 10, 20, 40, 60])
-    np.testing.assert_allclose(s["y"], np.histogram(pt[fake], edges)[0] / np.histogram(pt, edges)[0])
+    np.testing.assert_allclose(
+        s["y"], np.histogram(pt[fake], edges)[0] / np.histogram(pt, edges)[0]
+    )
     # unmatched per event vs pu (threshold 0): the fakes are pileup-independent here: flat, slope ~ 0
     s = _plot(coll, "unmatched_per_event", "pu", 0.0)
-    assert s["fit"] is not None and abs(s["fit"]["slope"]) < 5 * s["fit"]["slope_err"] + 1e-3
+    assert (
+        s["fit"] is not None
+        and abs(s["fit"]["slope"]) < 5 * s["fit"]["slope_err"] + 1e-3
+    )
     # dN/deta of unmatched objects: all fakes sit at eta in [1.3, 1.7] -> bin [1.0, 1.5) and [1.5, 2.0)
     s = _plot(coll, "unmatched_density", "eta", 0.0)
     assert sum(s["num"]) == fake.sum()
@@ -205,8 +239,105 @@ def test_multiplicity_minbias_rate(cache, events, monkeypatch):
     for i_thr, thr in enumerate([0, 10, 25]):
         n = ak.to_numpy(ak.sum(pts >= thr, axis=1))
         assert s_mult["y"][i_thr] == pytest.approx(n.mean())
-        assert s_rate["y"][i_thr] == pytest.approx((n > 0).mean() * constants.RATE_NORM_FACTOR)
+        assert s_rate["y"][i_thr] == pytest.approx(
+            (n > 0).mean() * constants.RATE_NORM_FACTOR
+        )
     assert all(o["matched"] is None for o in coll.objects.values())
+
+
+def test_multiplicity_min_objects_seed(cache, events):
+    """min_objects: events with >= 2 objects; seed: the same ANDed with a per-event bit
+    of the L1 record; rate_lines: the lowest threshold at which the rate is below."""
+    _, trg, _, _ = events
+    bit = np.arange(N_EVENTS) % 3 == 0
+    pts = ak.Array(trg["pt"])
+    scale = constants.RATE_NORM_FACTOR / N_EVENTS
+    # events with >= 2 objects above each threshold of the 1-GeV grid; the rate line
+    # is the rate at 12 GeV, so the first threshold at or below it is <= 12 GeV
+    n_at = [(ak.to_numpy(ak.sum(pts >= t, axis=1)) >= 2).sum() for t in range(26)]
+    line = float(n_at[12] * scale)
+    ak.to_parquet(
+        ak.zip({"L1_pTestSeed_final": bit, "L1_other_final": ~bit}),
+        str(cache / VERSION / f"{VERSION}_{SAMPLE}_L1.parquet"),
+    )
+    cfg = _cfg(
+        "multiplicity",
+        rate=True,
+        min_objects=2,
+        seed={"bit": "L1_pTestSeed_final", "label": "test seed"},
+        rate_lines=[line],
+        rate_line_step=1,
+    )
+    coll = PurityCollection(cfg, "synthetic_seed")
+    coll.create()
+    key = next(iter(coll.objects))
+    plot = next(
+        p
+        for p in coll.plots
+        if p["quantity"] == "event_fraction" and p["vs"] == "threshold"
+    )
+    s, s_seed = plot["series"][key], plot["series"][f"{key}+seed"]
+    for i_thr, thr in enumerate([0, 10, 25]):
+        n = ak.to_numpy(ak.sum(pts >= thr, axis=1))
+        assert s["num"][i_thr] == (n >= 2).sum()
+        assert s_seed["num"][i_thr] == ((n >= 2) & bit).sum()
+        assert s_seed["y"][i_thr] == pytest.approx(((n >= 2) & bit).sum() * scale)
+        assert s_seed["garwood_lo"][i_thr] < s_seed["y"][i_thr]
+        assert s_seed["garwood_hi"][i_thr] > s_seed["y"][i_thr]
+    assert coll.seed_rate["n"] == bit.sum()
+    # rate line: first threshold on the 1-GeV grid with rate <= the line
+    at = s["at_rate"][f"{line:g}"]
+    first = next(t for t, n in enumerate(n_at) if n * scale <= line)
+    assert first <= 12
+    assert at["threshold"] == first and at["n"] == n_at[first]
+    # object-level quantities do not include the seeded copy
+    assert all(len(p["series"]) == 1 for p in coll.plots if p["vs"] == "eta")
+
+
+def test_norm_events_seed_only(cache, events):
+    """norm_events: the sample is a subset of norm_events events (e.g. the L1-accepted
+    minimum bias), so fractions and rates are per norm_events; seed.only drops the plain
+    curves of the seeded objects."""
+    _, trg, _, _ = events
+    bit = np.arange(N_EVENTS) % 3 == 0
+    pts = ak.Array(trg["pt"])
+    norm = 10 * N_EVENTS
+    ak.to_parquet(
+        ak.zip({"L1_pTestSeed_final": bit, "L1_other_final": ~bit}),
+        str(cache / VERSION / f"{VERSION}_{SAMPLE}_L1.parquet"),
+    )
+    vs = {"threshold": {"edges": [0, 10, 25]}}
+    cfg = _cfg(
+        "multiplicity",
+        vs=vs,
+        rate=True,
+        norm_events=norm,
+        seed={"bit": "L1_pTestSeed_final", "only": True},
+        reference_bits=[{"bit": "L1_other_final", "label": "other"}],
+    )
+    coll = PurityCollection(cfg, "synthetic_norm")
+    coll.create()
+    assert len(coll.objects) == 1
+    assert all(k.endswith("+seed") for k in coll.objects)
+    s = _plot(coll, "event_fraction", "threshold")
+    scale = constants.RATE_NORM_FACTOR / norm
+    for i_thr, thr in enumerate([0, 10, 25]):
+        n = ak.to_numpy(ak.sum(pts >= thr, axis=1))
+        k = ((n >= 1) & bit).sum()
+        assert s["num"][i_thr] == k and s["den"][i_thr] == norm
+        assert s["y"][i_thr] == pytest.approx(k * scale)
+        assert s["garwood_hi"][i_thr] > s["y"][i_thr]
+    assert coll.seed_rate["y"] == pytest.approx(bit.sum() * scale)
+    (ref,) = coll.reference_rates
+    assert ref["n"] == (~bit).sum() and ref["label"] == "other"
+    assert ref["y"] == pytest.approx((~bit).sum() * scale)
+    m = _plot(coll, "objects_per_event", "threshold")
+    n0 = ak.to_numpy(ak.sum(pts >= 0, axis=1))
+    assert m["y"][0] == pytest.approx((n0 * bit).sum() / norm)
+    with pytest.raises(ValueError, match="norm_events"):
+        PurityCollection(
+            _cfg("multiplicity", norm_events=norm, vs={"pu": {"edges": [0, 1]}}), "x"
+        )
 
 
 def test_plotter_outputs(cache, tmp_path, monkeypatch):
@@ -220,10 +351,17 @@ def test_plotter_outputs(cache, tmp_path, monkeypatch):
     out.mkdir()
     monkeypatch.chdir(out)
     # object labels are read from configs/<version>/objects relative to the working directory
-    os.symlink(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "configs")), "configs")
+    os.symlink(
+        os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "configs")
+        ),
+        "configs",
+    )
     PurityPlotter("synthetic_plot", coll).plot()
     d = out / "outputs" / VERSION / "object_performance" / "purity"
     assert (d / f"synthetic_plot_fake_fraction_vs_pt_{VERSION}.png").exists()
     assert (d / f"synthetic_plot_event_fraction_vs_threshold_{VERSION}.json").exists()
-    assert (d / f"synthetic_plot_unmatched_per_event_vs_pu_thr10_{VERSION}.pdf").exists()
+    assert (
+        d / f"synthetic_plot_unmatched_per_event_vs_pu_thr10_{VERSION}.pdf"
+    ).exists()
     assert (d / f"synthetic_plot_{VERSION}.yaml").exists()

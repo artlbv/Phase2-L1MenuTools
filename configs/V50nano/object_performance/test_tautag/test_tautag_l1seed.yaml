@@ -1,0 +1,73 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# (the cache version holding the tagger object; outputs go to outputs/<that version>/).
+# hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
+# the HLT-jet taggers are not (the jets are stored in every event).
+# Combined L1 x HLT object efficiency with one leg of L1_pDoublePuppiTau52_52 (as
+# hlt_tau_l1seed.yaml: L1nnPuppiTau:default above 37.9 / 30.1 GeV online, barrel / endcap,
+# matched within 0.3), HLT threshold 35 GeV (pT^sig for the taggers). Per leg, not the path.
+
+TESTTauL1Seed_DoubleTau35_Barrel:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  matching_and_threshold: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "abs({eta}) < 1.5"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    hltHpsPFTau:MediumDeepTau:barrel: "pt"
+    hltJetTauTagTEST:BDT1kHz:barrel: "pt"
+    hltJetTauTagTEST:DS1kHz:barrel: "pt"
+    hltJetTauTagTEST:DSA1kHz:barrel: "pt"
+  l1_seed:
+    object: "L1nnPuppiTau:default"
+    threshold: {barrel: 37.9, endcap: 30.1}   # one leg of pDoublePuppiTau52_52
+    match_dR: 0.3
+    label: "NN PUPPI Tau, 1 leg of pDoublePuppiTau52_52"
+  thresholds: [35]
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Efficiency, barrel (HLT $p_T > <threshold>$ GeV) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 6
+
+TESTTauL1Seed_DoubleTau35_Endcap:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  matching_and_threshold: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "abs({eta}) > 1.5"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    hltHpsPFTau:MediumDeepTau:endcap: "pt"
+    hltJetTauTagTEST:BDT1kHz:endcap: "pt"
+    hltJetTauTagTEST:DS1kHz:endcap: "pt"
+    hltJetTauTagTEST:DSA1kHz:endcap: "pt"
+  l1_seed:
+    object: "L1nnPuppiTau:default"
+    threshold: {barrel: 37.9, endcap: 30.1}   # one leg of pDoublePuppiTau52_52
+    match_dR: 0.3
+    label: "NN PUPPI Tau, 1 leg of pDoublePuppiTau52_52"
+  thresholds: [35]
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Efficiency, endcap (HLT $p_T > <threshold>$ GeV) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 6

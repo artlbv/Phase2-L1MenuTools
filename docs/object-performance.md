@@ -22,9 +22,11 @@
   * [Reference config files](#reference-config-files)
   * [Matching + threshold (trigger) efficiencies](#matching--threshold-trigger-efficiencies)
   * [Combined L1 x HLT object efficiency (`l1_seed`)](#combined-l1-x-hlt-object-efficiency-l1_seed)
+  * [Split by reference categories (`split_by`)](#split-by-reference-categories-split_by)
 * [Response and resolution](#response-and-resolution)
 * [L1 seed and HLT path efficiencies](#l1-seed-and-hlt-path-efficiencies)
 * [Purity, fake rate and multiplicity](#purity-fake-rate-and-multiplicity)
+* [b-tagging efficiency and mis-identification](#b-tagging-efficiency-and-mis-identification)
 
 ## Caching the NTuple trees
 
@@ -220,6 +222,68 @@
   Configs: `configs/V50nano/object_performance/hlt_{muon,electron,tau,jets}_l1seed.yaml` (V50nano_170pre6HLT).
   Tests: `menu_tools/object_performance/tests/test_l1_seed.py`.
 
+### Split by reference categories (`split_by`)
+
+  The optional `split_by` block splits matched efficiencies (and resolutions, next section) by
+  categories of a field of the reference object, e.g. the generator decay mode of the visible gen
+  tau. It works for matching efficiencies, turn-ons (also with `matching_and_threshold` and
+  `threshold_field`, e.g. efficiency vs eta) and the `l1_seed` curves. Example
+  (`configs/V50nano/object_performance/hlt_tau_matching_dm.yaml`):
+
+  ```yaml
+  HLTTausMatchingBarrel_DM:
+    sample: HHTo2B2Tau
+    version: V50nano
+    match_test_to_ref: True
+    reference_object: {object: "GenVisTau", x_arg: "pt", ...}
+    test_objects:
+      hltHpsPFTau:default: "pt"
+      L1nnPuppiTau:default: "pt"
+    split_by:
+      field: status                 # reference field (name without the `GenVisTau_` prefix)
+      categories:                   # legend label -> values of the field (disjoint)
+        "1-prong": [0]
+        "1-prong + $\\pi^0$s": [1, 2]
+        "3-prong": [10]
+        "3-prong + $\\pi^0$": [11]
+      # name: DM                    # file-name tag, default `by_<field>`; "" for none
+      # layout: per_object          # per_object (default) or per_category
+      # summary_range: [40, 150]    # x range of the integrated efficiencies (default: binning)
+    ...
+  ```
+
+  Each category is the same efficiency restricted to the reference objects of that category, in the
+  numerator and the denominator (for `matching_and_threshold` all reference objects of the category,
+  for pure threshold efficiencies the matched ones). Reference objects in no category ("other") are
+  only in the inclusive curve. The usual (inclusive) plot, JSON and distributions are unchanged.
+  For [path efficiencies](#l1-seed-and-hlt-path-efficiencies) the categories are per event
+  (`objects: n`: the combination of the categories of the n leading reference objects, e.g. the
+  decay-mode pair of the two leading taus).
+  In addition, in `outputs/<version>/object_performance/turnons/` (`<tag>` = `_<name>`):
+
+  * `<plot><tag>_<curve>_<threshold>_<version>.{png,pdf,json}` (`layout: per_object`): one plot per
+    curve (test object, `L1seed`, `<test obj>+L1seed`; `:` written as `-`, `+` as `_`), with the
+    inclusive curve (black, "All") and one curve per category; the legend gives each category's
+    share of the denominator. With `layout: per_category`: `<plot><tag>_<category>_...`, one plot
+    per category with all curves.
+  * `<plot><tag>_fractions_<threshold>_<version>.json`: the category table: `reference` (counts and
+    fractions of all reference objects after the reference cuts, including `other`), and per curve
+    and category (`inclusive`, the categories, `other`): `n_den`, `n_num`, `fraction` of the
+    denominator, and the `efficiency` with Clopper-Pearson `err` integrated over `summary_range`.
+
+  The per-plot JSONs have the usual structure (keys `inclusive` and the category names, or the curve
+  keys for `per_category`). Only for matched turn-ons (`match_test_to_ref: True`), not for
+  `iso_vs_efficiency` or `trafo` references. Without `split_by` nothing changes.
+
+  **Tau decay modes.** `GenVisTau_status` is the generator decay mode of the visible tau
+  (`GenVisTauProducer`, `JetMCTagUtils::genTauDecayMode`, stored as `reco::PFTau::hadronicDecayMode`):
+  0 = 1-prong, 1 = 1-prong + 1 π0, 2 = 1-prong + 2 π0, 10 = 3-prong, 11 = 3-prong + 1 π0,
+  15 = other (neutral hadrons such as K0, ≥ 3 π0, 3-prong + ≥ 2 π0, 5-prong). In HH → bbττ
+  (V50nano_170pre6HLT, gen vis. pT > 20 GeV, |η| < 2.1): 14.6% / 39.5% / 15.4% / 16.1% / 8.0% / 6.3%.
+  Configs: `configs/V50nano/object_performance/{hlt_tau,tau}_*_dm.yaml` (generated from the
+  configs without `_dm`; plot names + `_DM`, no scalings). Tests:
+  `menu_tools/object_performance/tests/test_split_by.py`.
+
 ## Response and resolution
 
   A plot entry with a `resolution:` block produces pT, eta and phi response / resolution plots
@@ -280,6 +344,16 @@
     the edge bins) in every bin of `<vs>`, all test objects overlaid, for the variables in `response_binning`;
   * `<plot>_<version>.yaml`: the plot config.
 
+  With [`split_by`](#split-by-reference-categories-split_by) (matched pairs only), in addition:
+
+  * `<plot><tag>_<test obj>_<var>_vs_<vs>_<version>.{png,pdf,json}`: per test object, median and
+    resolution of all pairs (black) and per category;
+  * `<plot><tag>_<var>_dist_<version>.{png,pdf}`: for the variables in `response_binning`, the response
+    distributions per category, integrated over all pairs, one panel per test object;
+  * `<plot><tag>_fractions_<version>.json`: per test object, the matched pairs per category
+    (`pairs`: counts and fractions) and the summary (median, 16/84% quantiles, resolution, ...) of each
+    response for `inclusive`, every category and `other`.
+
 ## L1 seed and HLT path efficiencies
 
   A plot entry with a `path_efficiency:` block gives the per-event efficiency of trigger bits
@@ -333,6 +407,76 @@
   Outputs, in `outputs/<version>/object_performance/path_efficiency/`: `<plot>_<version>.{png,pdf,json}`
   (json per curve: `label`, `xbins`, `efficiency`, `efficiency_err`, `n_pass`, `n_total`, `plateau`)
   and `<plot>_<version>.yaml` (the plot config).
+
+  **Several paths in one plot (`paths:`).** Instead of `L1` / `HLT` / `labels`, a `paths:` map of
+  group name → `{L1, HLT, curves, labels}` overlays several groups of bits, e.g. two HLT paths with
+  the same L1 seed. A group without `curves` takes the top-level `curves` (default: `L1` and/or `HLT`).
+  The curves are keyed `<group>:<curve>` in the JSON (`bits` is then per group); default legend labels
+  are prefixed by the group name. The single-group syntax is unchanged.
+
+  ```yaml
+  path_efficiency:
+    paths:
+      DeepTau:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1]
+        curves: [L1, L1_and_HLT]
+        labels: {L1: "L1 DoublePuppiTau52_52 (20.3 kHz)", L1_and_HLT: "DeepTau HPS35 (1.02 kHz)"}
+      ParT:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_DoubleMediumPFPuppiParTTauh30_eta2p1]
+        curves: [L1_and_HLT]
+        labels: {L1_and_HLT: "ParT Tauh30 (0.17 kHz)"}
+    plateau_min: 80
+  ```
+
+  **Other x variables and selections.**
+
+  * `reference_object.min_objects: n`: only events with at least n reference objects after the object
+    cuts (e.g. `rank: 1, min_objects: 2`: the leading-tau pT of the events with two taus).
+  * `reference_object.x_arg: "abs(eta)"`: the absolute value of a reference field.
+  * `path_efficiency.event_x: Pileup_nPU`: x is a per-event branch `<object>_<field>` of the cache
+    (`<version>_<sample>_<object>.parquet`), for the events that pass the reference selection
+    (efficiency vs pileup). Note: in the Spring24 samples `Pileup_nTrueInt` is 200 in every event;
+    `Pileup_nPU` (in-time interactions, ~200 ± 14) varies.
+  * `reference_object.cuts.event` acts on the object at `rank` (e.g. `"{pt} > 60"` on the subleading
+    tau for the |η| and pileup dependence in the plateau).
+
+  **Per-event categories (`split_by`).** The [`split_by`](#split-by-reference-categories-split_by)
+  block also works for path efficiencies, with event categories: by default the category of the
+  reference object at `rank` (the x object); with `objects: n` the unordered combination of the
+  categories of the n leading reference objects (after the object cuts), named `"<cat> + <cat>"`
+  in declaration order. Events with fewer than n reference objects, or with one of them in no
+  category, are "other" (only in the inclusive curve). Decay-mode pair of the two leading taus:
+
+  ```yaml
+  split_by:
+    field: status
+    objects: 2                     # path efficiency only
+    categories: {"1-prong": [0, 1, 2], "3-prong": [10, 11]}
+    # -> "1-prong + 1-prong", "1-prong + 3-prong", "3-prong + 3-prong" (status 15: other)
+    name: DMpair
+    layout: per_category           # one plot per category with all curves; per_object: one per curve
+    summary_range: [80, 200]       # x range of the integrated efficiency in the fractions JSON
+  ```
+
+  Outputs in addition to the inclusive ones: `<plot><tag>_<category>_<version>.{png,pdf,json}`
+  (`per_category`; JSON as the inclusive one, with `category` and per-category `plateau`) or
+  `<plot><tag>_<curve key>_<version>.*` (`per_object`: inclusive "All" and one curve per category),
+  and `<plot><tag>_fractions_<version>.json`: the composition of the events with a reference x, and
+  per curve and category (`inclusive`, the categories, `other`) `n_den`, `n_num`, `fraction` of the
+  denominator, the `efficiency` with Clopper-Pearson `err` integrated over `summary_range`, and the
+  `plateau` (`plateau_min`). Tests: `menu_tools/object_performance/tests/test_path_efficiency_groups.py`.
+
+  **Di-tau path comparison** (`configs/V50nano/object_performance/path_eff_taus_compare.yaml`,
+  `--version V50nano_170pre6HLT`, HH → bbττ): the seed `L1_pDoublePuppiTau52_52` and the two HLT
+  paths it seeds, `HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1` (HPS + DeepTau) and
+  `HLT_DoubleMediumPFPuppiParTTauh30_eta2p1` (ParT on AK4 PUPPI jets), each as L1 and HLT, vs the
+  subleading / leading visible gen-tau pT, the subleading |η| and nPU, inclusive and per decay-mode
+  pair. Only bits are possible (the ParT scores and the HLT trigger objects are not in the nano). The
+  legend gives the rates on the 2M minimum-bias events (L1 1306 events = 20.3 kHz, DeepTau 66 =
+  1.02 kHz, ParT 11 = 0.17 kHz; `rate_table` HLT bits). DY is not used: its `GenVisTau` is not cached
+  and it has only ~200 events with a subleading visible tau above 40 GeV in |η| < 2.1.
 
 ## Purity, fake rate and multiplicity
 
@@ -420,6 +564,49 @@
       # pileup_version: V50nano_170X1026PU
   ```
 
+  **Double-object and seeded rates.** Three options of the event-level quantities (for
+  `multiplicity`, e.g. rates vs threshold in minimum bias):
+
+  ```yaml
+      min_objects: 2                   # event_fraction: events with >= 2 objects (default 1)
+      seed:                            # also each listed object ANDed with a per-event bit
+        bit: L1_pDoublePuppiTau52_52_final   # field of <v>_<sample>_<record>.parquet
+        # record: L1                   # default: the bit's prefix (L1 / HLT)
+        label: "L1 pDoublePuppiTau52_52"
+        objects: [hltJetTauTagTEST:BDT1kHz]  # default: all test objects
+        # only: true                   # draw only the seeded curves of these objects
+      rate_lines: [1]                  # kHz (needs `rate`)
+      # rate_line_step: 0.5            # GeV
+      reference_bits:                  # per-event bits drawn as reference rates
+        - {bit: HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1, label: "DeepTau path"}
+      # norm_events: 1999040           # the sample is a subset of this many events
+  ```
+
+  `min_objects` counts events with at least that many objects above threshold, without any
+  ΔR between them. With `seed`, each listed object gets a second curve `<key>+seed` (same colour,
+  dashed, open markers) that keeps only the events in which the bit fired, e.g. an HLT object
+  ANDed with the L1 seed of its path; the bit alone is drawn as a horizontal line. Seeded curves
+  are made for the event-level quantities only (vs threshold, vs pileup). With `rate`, the
+  threshold-scan JSON also gives the 68% Garwood interval (`garwood_lo`, `garwood_hi`, kHz)
+  from the event counts `num`, and `rate_lines` draws each rate and stores, per curve under
+  `at_rate`, the lowest threshold on a `rate_line_step` grid with rate ≤ line (`threshold`, `n`,
+  `rate`, Garwood interval; `at_scan_start` if the scan starts below the line). Example:
+  `configs/V50nano/object_performance/test_tautag/test_tautag_rates.yaml`. Curves take their
+  colour from the 10-colour list by test object (the CMS style alone cycles 6).
+
+  `reference_bits` draws the rate of each listed per-event bit (e.g. the HLT paths an emulated
+  trigger is compared with) as a horizontal line labelled with its rate and event count; the JSON
+  stores them under `reference_bits` (count, rate, Garwood interval). `seed.only: true` drops the
+  plain curves of the seeded objects, for a sample in which only the seeded quantity is defined.
+
+  **Subsets of minimum bias (`norm_events`).** A sample may hold only the events that can pass,
+  e.g. the L1-accepted minimum-bias events (`MinBiasL1Pass` of the TEST tau taggers, 31,786 of
+  1,999,040 events). With `norm_events: N` the event-level fractions, rates, Garwood intervals,
+  `at_rate` thresholds and per-event multiplicities are per N events (the events outside the
+  sample count as failing). This is correct only for selections that every event outside the
+  sample fails, e.g. ANDed with an L1 seed contained in the subset (use `seed` with
+  `only: true`); it is not allowed with the `pu` binning.
+
   **Pileup.** The `pu` binning reads `<v>_<sample>_Pileup.parquet` from `pileup_version` if given,
   else from the plot version `<v>`, else from `<v>PU` (e.g. the row-aligned `V50nano_170X1026PU`
   cache next to `V50nano_170X1026`); the event count must match. Without it the `pu` plots are
@@ -433,3 +620,110 @@
   object: `label`, `match_dR`, `edges`/`xbins` or `thresholds`, `y`, `err_lo`, `err_hi`, `num`,
   `den`, and `integral` (all objects) or `fit`; plus `definition`, `n_events`, `pileup_source`) and
   `<plot>_<version>.yaml` (the plot config).
+
+## b-tagging efficiency and mis-identification
+
+  A plot entry with a `btag:` block gives the b-tagging efficiency and the c / light / pileup
+  mis-identification rates of L1 and HLT jets, and ROC curves from the continuous discriminant
+  (`menu_tools/object_performance/btag_collection.py`, `btag_plotter.py`, dispatched by
+  `object_performance <config>`):
+
+  ```
+  object_performance configs/V50nano/object_performance/btag_tt.yaml --version V50nano_170pre6HLT
+  ```
+
+  Reference configs: `btag_tt.yaml` (TT, where the L1 working points are defined) and
+  `btag_hh4b.yaml` (HHTo4B), comparing `L1puppiJetSC4NG` (NG tagger `bTagScore`) with
+  `hltAK4PuppiJetCorr` (DeepFlavour, JEC-corrected pT). The working points are ids of the jet
+  objects, see [objects](objects.md#b-tagging-working-points).
+
+  **Jets and truth.** All reco jets of each event passing the test object's id cuts and
+  |eta| < `max_abs_eta` are used. The closest `GenJet` (after the `reference_gen` cuts, default
+  pT > 10 GeV) within `match_dR` gives the flavour from `hadronFlavour`: b (5), c (4), light (0).
+  Jets with no `GenJet` within `pu_dR` are *pileup* jets (`GenJet`s are clustered from the
+  hard-scatter particles only). Jets with a `GenJet` between `match_dR` and `pu_dR` but none
+  within `match_dR` are not used. Two reco jets may match the same `GenJet`.
+
+  **Definitions.** A jet is *tagged* at a working point if it passes the cuts of the
+  working-point id (an id of the same object). For each flavour: N(tagged jets) / N(jets), i.e.
+  the tagging efficiency of b jets and the mis-identification rates of c, light and pileup jets,
+  **conditional on the reco jet existing** (and passing the |eta| cut): the jet reconstruction
+  efficiency is not included. Clopper-Pearson 68% intervals.
+
+  ```yaml
+  BTagTT:
+    sample: TT
+    version: V50nano
+    test_objects:
+      L1puppiJetSC4NG:default: "pt"
+      hltAK4PuppiJetCorr:default: "pt"
+    btag:
+      discriminants:                   # per test object: expression, or {name: expression}
+        L1puppiJetSC4NG:default: "{bTagScore}"
+        hltAK4PuppiJetCorr:default:
+          "prob(b)": "{DeepFlavour_prob_b}"            # the first one is the main one
+          "b+bb+lepb": "{DeepFlavour_prob_b} + {DeepFlavour_prob_bb} + {DeepFlavour_prob_lepb}"
+      working_points:                  # ids of the same object (or full keys obj:id)
+        L1puppiJetSC4NG:default: [bTagLight10, bTagLight1, bjetnn]
+        hltAK4PuppiJetCorr:default: [bTagDeepFlavour0p275, bTagDeepFlavour0p375, bTagLight10]
+      reference_gen: {object: GenJet, label: "GenJet", cuts: ["{pt} > 10"]}   # default
+      flavour_field: hadronFlavour     # default
+      match_dR: 0.2                    # default: the test object's match_dR
+      pu_dR: 0.4                       # default 0.4
+      max_abs_eta: 2.4                 # default 2.4
+      min_pt: 30                       # reco pT cut of the vs eta / |eta| / pu plots (default 30)
+      flavours: [b, c, light, pu]      # default: all
+      vs:
+        pt: {edges: [20, 30, 50, 100, 200, 500]}     # reco-jet pT (no pT cut)
+        genpt: {edges: [20, 30, 50, 100, 200, 500]}  # matched GenJet pT (not for pileup)
+        eta: {min: -2.4, max: 2.4, step: 0.3}        # reco-jet eta (abseta: |eta|)
+        pu: {edges: [140, 170, 185, 195, 205, 215, 230, 260]}
+      roc:
+        pt_bins: [[30, 100], [100, null], [30, null]]   # reco-jet pT bins, null: no upper edge
+        against: [light, c, pu]
+        # eta_region: [0, 1.5]         # optional |eta| range of the ROC jets
+        target_misid: {light: [0.1, 0.01]}   # discriminant thresholds at these mis-id rates
+      summary:
+        pt_bins: [[30, 100], [100, null]]
+        eta_regions: {inclusive: [0, 2.4], barrel: [0, 1.5]}
+      # pu_variable: nPU               # pileup binning, as for purity (pileup_version too)
+  ```
+
+  The pT binning uses the `pt` field of each object: the online pT for L1 jets (no offline
+  scalings) and the corrected pT for `hltAK4PuppiJetCorr`. The vs `genpt` plots compare L1 and
+  HLT at the same true jet pT.
+
+  **ROC curves.** In each reco pT bin, b efficiency vs mis-id rate of the `against` flavour for a
+  scan of the discriminant (all distinct values, e.g. the 1/128 grid of the L1 scores, or 400
+  quantiles), all objects and discriminants overlaid; the working points are drawn as markers with
+  their measured (b eff., mis-id) and errors. With `target_misid` the json lists, per object and
+  discriminant, the smallest threshold t among the score values with mis-id(score > t) <= target,
+  and the b efficiency there (this is how the L1 working points were defined).
+
+  Outputs, in `outputs/<version>/object_performance/btag/`:
+
+  * `<plot>_<flavour>_vs_<vs>_<version>.{png,pdf,json}`: efficiency (b) or mis-id rate vs `<vs>`,
+    one curve per object and working point; json per curve `label`, `edges`, `xbins`, `y`,
+    `err_lo`, `err_hi`, `num`, `den`;
+  * `<plot>_roc_<against>_pt<lo>to<hi>_<version>.{png,pdf,json}`: ROC curves (json: per curve the
+    `threshold`, `eff_b`, `misid` arrays; per working point `eff_b`, `misid` and errors;
+    `target_misid`);
+  * `<plot>_summary_<version>.{json,txt}`: all rates in the `summary` pT bins and eta regions, and
+    the number of jets per truth category;
+  * `<plot>_<version>.yaml`: the plot config.
+
+  **Caveats (V50nano_170pre6HLT).**
+  * The HLT b-tag filters (`HLTPFJetTag`) cut on DeepFlavour **prob(b) alone**
+    (`hltPfDeepFlavourJetTagsModEta2p4:probb`), not on b + bb + lepb; the HLT working points do the
+    same. b + bb + lepb is shown as a second ROC curve.
+  * The nano scores are from `hltPfDeepFlavourJetTags` (run by `DST_PFScouting`, i.e. stored in
+    all events), the same model as in the b-tag paths but run on the uncorrected
+    `hltAK4PFPuppiJets` (the paths run it on the corrected jets with pT > 30 GeV, |eta| < 2.4).
+    The jet pT is a tagger input, so the stored scores are close to, but not exactly, the ones
+    the paths cut on.
+  * The L1 `bTagScore` is quantized in steps of 1/128 and depends strongly on the jet pT: a fixed
+    cut gives a strongly pT-dependent mis-id rate.
+  * `GenJet`s have pT > 10 GeV in the nano: a reco jet next to a softer hard-scatter jet counts
+    as pileup.
+
+  Tests: `menu_tools/object_performance/tests/test_btag.py`.

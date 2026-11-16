@@ -1,0 +1,99 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# The ∧ L1-seed rates of test_tautag_rates.yaml with 14x the seeded statistics.
+# Sample MinBiasL1Pass: the 31,786 minimum-bias events of the L1 menu OR the three L1 bbtautau
+# TOPOs at +20 kHz (topo-hackathon-2026 results/topo_lep/skim/tau_request), out of all 1,999,040
+# events of the MinBias cache, scored with the final taggers (hlt_tau_pu topo_scores). They
+# contain every event of the full sample in which L1_pDoublePuppiTau52_52_final fired (1,306;
+# checked by make_hlt_jet_tautag_test.py --events-l1pass), so a rate ANDed with that bit is
+# complete. norm_events: 1999040 normalises to the full sample, 1 event = 31,038 kHz / 1,999,040
+# = 15.5 Hz (<version>_MinBiasL1Pass_norm.json in the cache). seed.only: only the ∧ seed curves
+# are drawn; the "alone" rates are not defined on this sample (it misses the events that fail
+# the L1 menu). The earlier DeepSets (dsOld) is not scored in this sample.
+# Single (TESTTauRatesL1Pass_*) and double (TESTDiTauRatesL1Pass_*: >= 2 objects, no dR between
+# them) object rate vs online pT threshold (pT^sig, or the regressed pT for hltJetTauTagRegTEST),
+# HLT objects |eta| < 2.1.
+
+TESTTauRatesL1Pass_BDT:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: &bdt_objects
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:BDT1kHz: "pt"
+    hltJetTauTagTEST:BDTEff90: "pt"
+    hltJetTauTagTEST:BDTEff80: "pt"
+    hltJetTauTagTEST:BDTParT: "pt"
+  purity: &rates
+    mode: multiplicity
+    vs:
+      threshold: {min: 10, max: 120, step: 5}
+    min_objects: 1
+    norm_events: 1999040
+    seed: &seed
+      bit: L1_pDoublePuppiTau52_52_final
+      label: "L1 pDoublePuppiTau52_52"
+      only: true
+    rate_lines: [1]               # kHz
+
+TESTTauRatesL1Pass_DS:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: &ds_objects
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagTEST:DSEff90: "pt"
+    hltJetTauTagTEST:DSEff80: "pt"
+    hltJetTauTagTEST:DSParT: "pt"
+  purity: *rates
+
+TESTTauRatesL1Pass_DSA:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: &dsa_objects
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:DSA1kHz: "pt"
+    hltJetTauTagTEST:DSAEff90: "pt"
+    hltJetTauTagTEST:DSAEff80: "pt"
+    hltJetTauTagTEST:DSAParT: "pt"
+  purity: *rates
+
+TESTDiTauRatesL1Pass_BDT:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: *bdt_objects
+  purity: &dirates
+    <<: *rates
+    min_objects: 2
+    reference_bits: &paths        # the HLT double-tau paths (same L1 seed) as reference rates
+      - {bit: HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1, label: "HLT DoubleMediumDeepTauPFTauHPS35"}
+      - {bit: HLT_DoubleMediumPFPuppiParTTauh30_eta2p1, label: "HLT DoubleMediumPFPuppiParTTauh30"}
+
+TESTDiTauRatesL1Pass_DS:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: *ds_objects
+  purity: *dirates
+
+TESTDiTauRatesL1Pass_DSA:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: *dsa_objects
+  purity: *dirates
+
+# Regressed pT: threshold on ptReg (hltJetTauTagRegTEST) with the DS1kHz cut and with the cut
+# re-chosen for 1 kHz at 26 GeV, against pT^sig with DS1kHz.
+TESTDiTauRatesL1Pass_DSReg:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects:
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltJetTauTagTEST:DS1kHz: "pt"
+    hltJetTauTagRegTEST:DS1kHz: "pt"
+    hltJetTauTagRegTEST:DSReg1kHz: "pt"
+  purity:
+    <<: *rates
+    min_objects: 2
+    reference_bits: *paths
+    vs:
+      threshold: {min: 10, max: 60, step: 1}

@@ -1,0 +1,65 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# (the cache version holding the tagger object; outputs go to outputs/<that version>/).
+# hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
+# the HLT-jet taggers are not (the jets are stored in every event).
+# Efficiency vs gen visible tau eta, HH -> bbtautau.
+
+TESTTauMatching_Eta_Pt40ToInf:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "eta"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "{pt} > 40"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    L1nnPuppiTau:default: "eta"
+    hltHpsPFTau:default: "eta"
+    hltHpsPFTau:MediumDeepTau: "eta"
+    hltJetTauTagTEST:noID: "eta"
+    hltJetTauTagTEST:BDT1kHz: "eta"
+    hltJetTauTagTEST:DS1kHz: "eta"
+    hltJetTauTagTEST:DSA1kHz: "eta"
+  xlabel: "Gen. $\\eta$"
+  ylabel: "Matching Efficiency (gen vis. $p_T$ > 40 GeV) [TEST]"
+  binning:
+    min: -2.2
+    max: 2.2
+    step: 0.2
+
+TESTTauTrigger_Eta_Pt50ToInf_wMatching:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  matching_and_threshold: True
+  threshold_field: "pt"
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "eta"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "{pt} > 50"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects:
+    L1nnPuppiTau:default: "eta"
+    hltHpsPFTau:MediumDeepTau: "eta"
+    hltJetTauTagTEST:noID: "eta"
+    hltJetTauTagTEST:BDT1kHz: "eta"
+    hltJetTauTagTEST:DS1kHz: "eta"
+    hltJetTauTagTEST:DSA1kHz: "eta"
+  thresholds: [35]
+  xlabel: "Gen. $\\eta$"
+  ylabel: "Matching + Trigger Eff. ($p_T > <threshold>$ GeV, gen vis. $p_T$ > 50 GeV) [TEST]"
+  binning:
+    min: -2.2
+    max: 2.2
+    step: 0.2

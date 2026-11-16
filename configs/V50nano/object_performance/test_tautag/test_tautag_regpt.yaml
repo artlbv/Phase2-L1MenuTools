@@ -1,0 +1,80 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
+# configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
+#   --version V50nano_170pre6HLT_TESTtautag
+# Regressed tau pT (hltJetTauTagRegTEST, pt = ptReg of the multi-task DeepSets) against pT^sig
+# (hltJetTauTagTEST) at matched rate: per-tau matching + trigger efficiency vs gen visible tau
+# pT, HH -> bbtautau. The pT threshold is in the ids (matching efficiency of the objects that
+# pass ID and pT cut = matching + threshold efficiency). The rates are those of the report's
+# double-tau emulation (L1 seed, 2 candidates, dR > 0.5) on all 2M minimum-bias events
+# (scripts/test_tautag/wps.py, wps.csv):
+#   pT^sig > 35, ds > 0.460 (DS1kHz)           64 events (1 kHz), HH event efficiency 0.614
+#   ptReg  > 35, ds > 0.460                     56 events (0.87 kHz), 0.555
+#   ptReg  > 33, ds > 0.460                     62 events (matched rate), 0.575
+#   ptReg  > 35, ds > 0.407                     64 events (1 kHz), 0.557
+#   ptReg  > 26, ds > 0.607                     64 events (1 kHz), 0.616 (= pT^sig > 35)
+
+TESTTauRegPt_Barrel:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "abs({eta}) < 1.5"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects: &regpt_objects
+    hltJetTauTagTEST:DS1kHzPt35: "pt"
+    hltJetTauTagRegTEST:DS1kHzPt35: "pt"
+    hltJetTauTagRegTEST:DS1kHzPt33: "pt"
+    hltJetTauTagRegTEST:DSReg1kHzPt35: "pt"
+    hltJetTauTagRegTEST:DSReg1kHzPt26: "pt"
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching + Trigger Efficiency (barrel) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 3
+
+TESTTauRegPt_Endcap:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      event:
+        - "abs({eta}) > 1.5"
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects: *regpt_objects
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching + Trigger Efficiency (endcap) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 3
+
+TESTTauRegPt_Inclusive:
+  sample: HHTo2B2Tau
+  version: V50nano
+  match_test_to_ref: True
+  reference_object:
+    object: "GenVisTau"
+    x_arg: "pt"
+    label: "Gen Taus"
+    cuts:
+      object:
+        - "abs({eta}) < 2.1"
+  test_objects: *regpt_objects
+  xlabel: "Gen. $p_T$ (GeV)"
+  ylabel: "Matching + Trigger Efficiency ($|\\eta| < 2.1$) [TEST]"
+  binning:
+    min: 0
+    max: 150
+    step: 3

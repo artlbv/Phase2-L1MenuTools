@@ -1,0 +1,198 @@
+# TEST, NOT OFFICIAL: experimental tau taggers on HLT AK4 PUPPI jets (hlt-tau-pu study,
+# topo-hackathon-2026 results/hlt_tau_pu/README.md, sections 10.8 and 11). Not an HLT object
+# of any menu. Objects built by menu_tools/caching/make_hlt_jet_tautag_test.py, only in the
+# cache version V50nano_170pre6HLT_TESTtautag (samples HHTo2B2Tau, DYLL_M50, MinBiasF1000,
+# MinBiasL1Pass); plots in configs/V50nano/object_performance/test_tautag/ (README there).
+#
+# Candidates: hltAK4PuppiJet with JEC-corrected pT > 20 GeV, |eta| < 2.5 (`scored` == 1).
+#   pt       = pT^sig, the tau energy estimate (|sum p| of the PF candidates within dR < 0.1
+#              of the axis; median response to the visible tau pT 0.99 in HH), on which the
+#              report's double-tau trigger emulation cuts (pT^sig > 35 GeV);
+#   eta, phi = the axis (leading charged PF candidate within 0.2 of the jet axis).
+#   Unscored jets: pt = -1, scores -1 (no id below passes them).
+# hltJetTauTagRegTEST: the same jets with pt = the DeepSets regressed tau pT (ptReg).
+# Scores (out-of-fold, two-fold cross-fit by file parity):
+#   bdt   = BDT with all features (`bdt_full`);
+#   ds    = multi-task DeepSets `mcttreg_jv_s0` (3 classes tau / minimum bias / hard-scatter
+#           jet, trained with inclusive tt, plus the pT regression), p_tau / (p_tau + p_MB);
+#   dsA01 = p_tau / (p_tau + p_MB + 0.1 p_HS), the same efficiency at 1 kHz with the b-jet
+#           rejection (HH b-jet fake rate at 80% tau eff. 4.3% instead of 32%, section 10.8);
+#   dsOld = the earlier DeepSets (`mc_jv`, no tt, no regression), p_tau / (p_tau + p_MB);
+#           -1 in MinBiasL1Pass (not scored there).
+# Working points (scripts/test_tautag/wps.py -> object_performance/test_tautag/wps.csv):
+#   *1kHz: the cut of the report's double-tau trigger emulation at 1 kHz,
+#     L1_pDoublePuppiTau52_52 AND >= 2 candidates pT^sig > 35, |eta| < 2.1, dR > 0.5, at most
+#     64 of the 1,999,040 minimum-bias events (the rate of
+#     HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1). HH efficiency (2 visible tau_h > 25 GeV):
+#     BDT 0.597, DeepSets 0.614, alpha = 0.1 0.610, earlier DeepSets 0.610.
+#   *Eff90 / *Eff80: 90% / 80% per-candidate efficiency for genuine HH tau_h (skim label 0)
+#     with pT^sig > 20 GeV. Minimum-bias jet fake rate (files 0-999, pT^sig > 20 GeV):
+#     BDT 5.8% / 1.6%, DeepSets 5.1% / 1.6%, alpha = 0.1 6.1% / 2.2%.
+#   *ParT: the 1 kHz emulation at the rate of HLT_DoubleMediumPFPuppiParTTauh30_eta2p1
+#     (11 events, 0.17 kHz). HH efficiency: BDT 0.513, DeepSets 0.515, alpha = 0.1 0.426.
+# All ids cut |eta| < 2.1, as the HLT tau paths and the report's trigger.
+
+hltJetTauTagTEST:
+  label: "TEST HLT-jet tau cand."
+  match_dR: 0.3
+  eta_ranges:
+    inclusive: [0, 7]
+    barrel: [0, 1.5]
+    endcap: [1.5, 2.4]
+  ids:
+    noID:
+      label: "TEST HLT-jet tau cand. ($p_T^{sig}$), no ID"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{scored} == 1"
+    BDT1kHz:
+      label: "TEST HLT-jet BDT > 0.363 (1 kHz di-tau)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.363"
+    BDTEff90:
+      label: "TEST HLT-jet BDT > 0.682 (90% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.682"
+    BDTEff80:
+      label: "TEST HLT-jet BDT > 0.901 (80% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.901"
+    DS1kHz:
+      label: "TEST HLT-jet DeepSets > 0.460 (1 kHz di-tau)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.460"
+    DSEff90:
+      label: "TEST HLT-jet DeepSets > 0.884 (90% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.884"
+    DSEff80:
+      label: "TEST HLT-jet DeepSets > 0.968 (80% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.968"
+    DSA1kHz:
+      label: "TEST HLT-jet DeepSets $\\alpha$=0.1 > 0.398 (1 kHz di-tau)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{dsA01} > 0.398"
+    DSAEff90:
+      label: "TEST HLT-jet DeepSets $\\alpha$=0.1 > 0.795 (90% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{dsA01} > 0.795"
+    DSAEff80:
+      label: "TEST HLT-jet DeepSets $\\alpha$=0.1 > 0.928 (80% $\\tau_h$ eff.)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{dsA01} > 0.928"
+    DSOld1kHz:
+      label: "TEST HLT-jet earlier DeepSets > 0.412 (1 kHz di-tau)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{dsOld} > 0.412"
+    # at the rate of HLT_DoubleMediumPFPuppiParTTauh30_eta2p1 (11 of the 2M minimum-bias
+    # events, 0.17 kHz) in the same double-tau emulation (pT^sig > 35)
+    BDTParT:
+      label: "TEST HLT-jet BDT > 0.792 (ParT-path rate)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{bdt} > 0.792"
+    DSParT:
+      label: "TEST HLT-jet DeepSets > 0.919 (ParT-path rate)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.919"
+    DSAParT:
+      label: "TEST HLT-jet DeepSets $\\alpha$=0.1 > 0.857 (ParT-path rate)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{dsA01} > 0.857"
+    # for the regressed-pT comparison (test_tautag_regpt.yaml): the pT cut in the id
+    DS1kHzPt35:
+      label: "TEST DeepSets > 0.460, $p_T^{sig}$ > 35 GeV (1 kHz)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.460"
+          - "{pt} > 35"
+
+# The same candidates with pt = the DeepSets regressed tau pT (ptReg = pT^sig * exp(r)).
+# The 1 kHz cuts re-chosen with the threshold on ptReg (scripts/test_tautag/wps.py):
+#   ptReg > 35 with the DS1kHz cut: 56 events (0.87 kHz), HH 0.555;
+#   ptReg > 33 with the DS1kHz cut: 62 events (matched rate), HH 0.575;
+#   ptReg > 35, ds > 0.407: 64 events (1 kHz), HH 0.557;
+#   ptReg > 26, ds > 0.607: 64 events (1 kHz), HH 0.616, the HH efficiency of pT^sig > 35
+#   (0.614).
+hltJetTauTagRegTEST:
+  label: "TEST HLT-jet tau cand. (regressed $p_T$)"
+  match_dR: 0.3
+  eta_ranges:
+    inclusive: [0, 7]
+    barrel: [0, 1.5]
+    endcap: [1.5, 2.4]
+  ids:
+    noID:
+      label: "TEST HLT-jet tau cand. (regressed $p_T$), no ID"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{scored} == 1"
+    DS1kHz:
+      label: "TEST DeepSets > 0.460 (regressed $p_T$)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.460"
+    DSReg1kHz:
+      label: "TEST DeepSets > 0.607 (regressed $p_T$, 1 kHz at 26 GeV)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.607"
+    DS1kHzPt35:
+      label: "TEST DeepSets > 0.460, reg. $p_T$ > 35 GeV (0.87 kHz)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.460"
+          - "{pt} > 35"
+    DS1kHzPt33:
+      label: "TEST DeepSets > 0.460, reg. $p_T$ > 33 GeV (1 kHz)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.460"
+          - "{pt} > 33"
+    DSReg1kHzPt35:
+      label: "TEST DeepSets > 0.407, reg. $p_T$ > 35 GeV (1 kHz)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.407"
+          - "{pt} > 35"
+    DSReg1kHzPt26:
+      label: "TEST DeepSets > 0.607, reg. $p_T$ > 26 GeV (1 kHz)"
+      cuts:
+        inclusive:
+          - "abs({eta}) < 2.1"
+          - "{ds} > 0.607"
+          - "{pt} > 26"

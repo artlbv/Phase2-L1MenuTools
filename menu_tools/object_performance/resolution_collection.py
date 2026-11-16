@@ -21,14 +21,20 @@ from typing import Any, Optional
 import awkward as ak
 import numpy as np
 
-from menu_tools.object_performance.turnon_collection import ArrayLoader, TurnOnCollection
+from menu_tools.object_performance.turnon_collection import (
+    ArrayLoader,
+    TurnOnCollection,
+)
+from menu_tools.object_performance.split import SplitConfig
 from menu_tools.utils import constants
 
 
-# Quantities that are a ratio test/ref (resolution normalised by the median) vs. a difference.
+# Quantities that are a ratio test/ref (resolution normalised by the median) vs. a
+# difference.
 RATIO_VARIABLES = ("pt",)
 DIFF_VARIABLES = ("eta", "phi")
-# Variables the response can be binned in ("vs"); "pu" is event-level from the Pileup parquet.
+# Variables the response can be binned in ("vs"); "pu" is event-level from the Pileup
+# parquet.
 VS_VARIABLES = ("pt", "eta", "abseta", "phi", "pu")
 
 
@@ -38,7 +44,10 @@ def wrap_dphi(dphi):
 
 
 def make_edges(spec: Any) -> np.ndarray:
-    """Bin edges from `{min, max, step}` or `{edges: [...]}` (or a plain list of edges)."""
+    """Bin edges from `{min, max, step}` or `{edges: [...]}`.
+
+    Or a plain list of edges.
+    """
     if isinstance(spec, (list, tuple)):
         return np.asarray(spec, dtype=float)
     if "edges" in spec:
@@ -98,12 +107,29 @@ def summarize_response(values: np.ndarray, kind: str) -> dict[str, float]:
 
 
 def binned_response(
-    x: np.ndarray, values: np.ndarray, edges: np.ndarray, kind: str, min_entries: int = 20
+    x: np.ndarray,
+    values: np.ndarray,
+    edges: np.ndarray,
+    kind: str,
+    min_entries: int = 20,
 ) -> dict[str, list]:
-    """`summarize_response` in bins of `x`; bins with fewer than `min_entries` give NaN."""
+    """`summarize_response` in bins of `x`.
+
+    Bins with fewer than `min_entries` give NaN.
+    """
     x = np.asarray(x, dtype=float)
     values = np.asarray(values, dtype=float)
-    keys = ["n", "median", "median_err", "q16", "q84", "resolution", "resolution_err", "mean", "std"]
+    keys = [
+        "n",
+        "median",
+        "median_err",
+        "q16",
+        "q84",
+        "resolution",
+        "resolution_err",
+        "mean",
+        "std",
+    ]
     out: dict[str, list] = {k: [] for k in keys}
     idx = np.digitize(x, edges) - 1
     for i in range(len(edges) - 1):
@@ -123,14 +149,17 @@ class ResolutionConfig:
     """The `resolution:` block of a plot config.
 
     resolution:
-      variables: [pt, eta, phi]           # responses to compute (default: all; event-level: pt, phi)
-      vs:                                 # binning variables (default: pt with the top-level `binning`)
-        pt: {min: 0, max: 100, step: 10}  # reference pT (or the event-level reference value)
+      # responses to compute (default: all; event-level: pt, phi)
+      variables: [pt, eta, phi]
+      # binning variables (default: pt with the top-level `binning`)
+      vs:
+        pt: {min: 0, max: 100, step: 10}  # reference pT (or event-level reference)
         eta: {min: -2.4, max: 2.4, step: 0.2}   # reference eta (abseta: |eta|)
         pu: {edges: [150, 180, 190, 200, 210, 220, 260]}  # pileup, see pu_variable
-      response_binning:                   # optional: per-bin response distributions for these
+      # optional: per-bin response distributions for these
+      response_binning:
         pt: {min: 0, max: 2, step: 0.04}
-      pu_variable: nPU                    # field of the Pileup parquet (nTrueInt, nPU, ...)
+      pu_variable: nPU                    # field of the Pileup parquet (nTrueInt, nPU)
       min_entries: 20                     # bins with fewer pairs are not reported
       min_ref: 0                          # event-level only: reference value > min_ref
     Each `vs` entry may carry a `label` (x axis label).
@@ -140,7 +169,9 @@ class ResolutionConfig:
         cfg = cfg or {}
         self._cfg = cfg
         default_vars = ["pt", "phi"] if event_level else ["pt", "eta", "phi"]
-        self.variables: list[str] = [v.lower() for v in cfg.get("variables", default_vars)]
+        self.variables: list[str] = [
+            v.lower() for v in cfg.get("variables", default_vars)
+        ]
         for var in self.variables:
             if var not in RATIO_VARIABLES + DIFF_VARIABLES:
                 raise ValueError(f"Unknown resolution variable `{var}`")
@@ -151,13 +182,17 @@ class ResolutionConfig:
             vs = {"pt": top_level["binning"]}
         for name in vs:
             if name not in VS_VARIABLES:
-                raise ValueError(f"Unknown resolution `vs` variable `{name}`, use one of {VS_VARIABLES}")
+                raise ValueError(
+                    f"Unknown resolution `vs` variable `{name}`, use one of "
+                    f"{VS_VARIABLES}"
+                )
         self.vs: dict[str, dict] = dict(vs)
         self.response_binning: dict[str, Any] = cfg.get("response_binning", {}) or {}
         self.pu_variable: str = cfg.get("pu_variable", "nPU")
         self.min_entries: int = int(cfg.get("min_entries", 20))
         # Event-level only: lower cut on the reference value (e.g. gen MET), since the
-        # pT response diverges for a reference near 0. Matched objects use the reference cuts.
+        # pT response diverges for a reference near 0. Matched objects use the reference
+        # cuts.
         self.min_ref: float = float(cfg.get("min_ref", 0))
 
     def vs_edges(self, name: str) -> np.ndarray:
@@ -175,6 +210,8 @@ class ResolutionCollection(TurnOnCollection):
       pairs[obj_key]: dict of flat numpy arrays ref_pt, ref_eta, ref_phi, test_pt,
                       test_eta, test_phi (missing ones absent) and pu (if requested)
       results[variable][vs][obj_key]: output of `binned_response`
+      split_results[category][variable][vs][obj_key]: the same per category of
+                      `split_by` (pairs carry the reference field as `split`)
     """
 
     def __init__(
@@ -193,13 +230,21 @@ class ResolutionCollection(TurnOnCollection):
         )
         self.event_level = not self.cfg_plot.matching
         self.res_cfg = ResolutionConfig(
-            self.cfg_plot.config_dict.get("resolution"), self.cfg_plot.config_dict, self.event_level
+            self.cfg_plot.config_dict.get("resolution"),
+            self.cfg_plot.config_dict,
+            self.event_level,
         )
         self.keep_matched_records = True
         self.matched_records: dict[str, dict] = {}
         self.pairs: dict[str, dict[str, np.ndarray]] = {}
         self.results: dict[str, dict[str, dict[str, dict]]] = {}
+        self.split_results: dict[str, dict[str, dict[str, dict[str, dict]]]] = {}
         self.pileup: Optional[np.ndarray] = None
+        self.split = self.cfg_plot.split_by
+        if self.split is not None and self.event_level:
+            raise ValueError("split_by needs match_test_to_ref: True")
+        if self.split is not None and self.split.objects is not None:
+            raise ValueError("split_by `objects` is only for path_efficiency")
 
     # ---- loading -------------------------------------------------------------------
 
@@ -220,12 +265,16 @@ class ResolutionCollection(TurnOnCollection):
         pileup = loader._load_array_from_parquet("Pileup")
         field = self.res_cfg.pu_variable.removeprefix("Pileup_")
         if field not in pileup.fields:
-            raise KeyError(f"Pileup parquet has no field `{field}` (fields: {pileup.fields})")
-        self.pileup = ak.to_numpy(pileup[field]).astype(float)
+            raise KeyError(
+                f"Pileup parquet has no field `{field}` (fields: {pileup.fields})"
+            )
+        self.pileup = pileup_values = ak.to_numpy(pileup[field]).astype(float)
         n_ref = len(self.ak_arrays["ref"])
-        if len(self.pileup) != n_ref:
+        if len(pileup_values) != n_ref:
             raise ValueError(
-                f"Pileup parquet has {len(self.pileup)} events, the reference {n_ref}: not aligned"
+                f"Pileup parquet has {len(pileup_values)} events, the reference "
+                f"{n_ref}: "
+                "not aligned"
             )
 
     # ---- pairs ---------------------------------------------------------------------
@@ -249,11 +298,19 @@ class ResolutionCollection(TurnOnCollection):
             if self.pileup is not None:
                 pu = ak.broadcast_arrays(ak.Array(self.pileup), ok)[0]
                 pairs["pu"] = self._flat(pu[ok])
+            if self.split is not None:
+                if self.split.field not in ref.fields:
+                    raise KeyError(
+                        f"split_by: reference has no field `{self.split.field}`"
+                    )
+                pairs["split"] = self._flat(ref[self.split.field][ok])
             self.pairs[str(test_obj)] = pairs
 
     @staticmethod
     def _per_event(arr, reducer):
-        """One value per event: flat arrays as they are, jagged ones reduced (None if empty)."""
+        """One value per event: flat arrays as they are, jagged ones reduced (None if
+        empty).
+        """
         if arr.ndim > 1:
             arr = reducer(arr)
         return ak.to_numpy(ak.fill_none(arr, np.nan)).astype(float)
@@ -271,14 +328,22 @@ class ResolutionCollection(TurnOnCollection):
             if len(test_arr) != n_ev:
                 raise ValueError(
                     f"{test_obj}: {len(test_arr)} events vs {n_ev} in the reference; "
-                    "event-level resolution needs one row per event (no object cuts on flat arrays)"
+                    "event-level resolution needs one row per event (no object cuts on "
+                    "flat arrays)"
                 )
-            # Jagged sums (e.g. one entry per sumType after the object cuts): highest value.
+            # Jagged sums (e.g. one entry per sumType after the object cuts): highest
+            # value.
             test_val = self._per_event(test_arr[x_arg], lambda a: ak.max(a, axis=1))
-            ok = np.isfinite(ref_val) & np.isfinite(test_val) & (ref_val > self.res_cfg.min_ref)
+            ok = (
+                np.isfinite(ref_val)
+                & np.isfinite(test_val)
+                & (ref_val > self.res_cfg.min_ref)
+            )
             pairs = {"ref_pt": ref_val[ok], "test_pt": test_val[ok]}
             if ref_phi is not None and "phi" in test_arr.fields:
-                test_phi = self._per_event(test_arr["phi"], lambda a: ak.firsts(a, axis=1))
+                test_phi = self._per_event(
+                    test_arr["phi"], lambda a: ak.firsts(a, axis=1)
+                )
                 ok_phi = ok & np.isfinite(ref_phi) & np.isfinite(test_phi)
                 # keep arrays of equal length: phi NaN where unavailable
                 pairs["ref_phi"] = np.where(ok_phi, ref_phi, np.nan)[ok]
@@ -290,7 +355,9 @@ class ResolutionCollection(TurnOnCollection):
     # ---- response ------------------------------------------------------------------
 
     def response(self, obj_key: str, variable: str) -> Optional[np.ndarray]:
-        """Response values of `variable` for the pairs of `obj_key` (None if unavailable)."""
+        """Response values of `variable` for the pairs of `obj_key` (None if
+        unavailable).
+        """
         p = self.pairs[obj_key]
         if not {f"ref_{variable}", f"test_{variable}"} <= p.keys():
             return None
@@ -309,21 +376,51 @@ class ResolutionCollection(TurnOnCollection):
             return np.abs(p["ref_eta"]) if "ref_eta" in p else None
         return p.get(f"ref_{vs}")
 
-    def _compute_results(self) -> None:
+    @property
+    def split_cfg(self) -> SplitConfig:
+        """The `split_by` config (error if not set)."""
+        if self.split is None:
+            raise ValueError("no split_by configured")
+        return self.split
+
+    def split_mask(self, obj_key: str, category: str) -> np.ndarray:
+        """Pairs of `obj_key` whose reference is in `category` of `split_by`."""
+        return np.isin(
+            self.pairs[obj_key]["split"], self.split_cfg.categories[category]
+        )
+
+    def _binned_results(self, category: Optional[str] = None) -> dict:
+        """results[variable][vs][obj_key], for the pairs of `category` (default
+        all)."""
+        results: dict[str, dict[str, dict[str, dict]]] = {}
         for var in self.res_cfg.variables:
             kind = "ratio" if var in RATIO_VARIABLES else "diff"
-            self.results[var] = {}
+            results[var] = {}
             for vs in self.res_cfg.vs:
-                self.results[var][vs] = {}
+                results[var][vs] = {}
                 for obj_key in self.pairs:
                     values = self.response(obj_key, var)
                     x = self.vs_values(obj_key, vs)
                     if values is None or x is None:
                         continue
                     ok = np.isfinite(values) & np.isfinite(x)
-                    self.results[var][vs][obj_key] = binned_response(
-                        x[ok], values[ok], self.res_cfg.vs_edges(vs), kind, self.res_cfg.min_entries
+                    if category is not None:
+                        ok &= self.split_mask(obj_key, category)
+                    results[var][vs][obj_key] = binned_response(
+                        x[ok],
+                        values[ok],
+                        self.res_cfg.vs_edges(vs),
+                        kind,
+                        self.res_cfg.min_entries,
                     )
+        return results
+
+    def _compute_results(self) -> None:
+        self.results = self._binned_results()
+        if self.split is not None:
+            self.split_results = {
+                cat: self._binned_results(cat) for cat in self.split_cfg.categories
+            }
 
     def create(self) -> None:
         self._load_arrays()
