@@ -131,6 +131,87 @@ ParT gains most at high pT: at 1% light mis-id with pT > 100 and |η| < 2.1, Par
 
 The 12 MinBiasL1Pass events missing in v2 get no ParT jets. The HLT/L1 bits of the mapped rows are checked against v1 (at most a few events per bit differ). All 13 TEST configs gained ParT MediumParT and ParT1kHz curves, the ParT rates in `rates_l1pass`, and the ParT 1 kHz paths (30 and 35) in `path_eff`.
 
+## τ ROC curves
+
+Per-jet τ ID of all taggers on one common set of jets: `scripts/part/tau_roc.py` → `tau_roc.csv` and the plots in
+https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/TEST_tautag_v2/object_performance/roc/ (PNG + PDF).
+Cache: `V50nano_170pre6HLTv2_TESTtautag` (v2 ParT row-aligned with the TEST taggers; HH 49,103, DY 200,000, MinBiasF1000
+159,920 events).
+
+![HH τh vs minimum bias, b and light jets](https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/TEST_tautag_v2/object_performance/roc/roc_summary.png)
+
+*HH τh efficiency against the background efficiency per jet, |η| < 2.1, corrected pT > 20 GeV. Left: MinBiasF1000 jets; middle: HH b jets;
+right: HH light/g jets. Open markers: the WPs of the reports applied per jet. ParT (red) is far ahead against b and light jets;
+against minimum-bias jets all jet taggers are close, the TEST taggers slightly ahead.*
+
+1. **Denominator.** HLT AK4 PUPPI jets (`hltAK4PuppiJetCorr`) with JEC-corrected pT > 20 GeV and |η| < 2.1. Bins: barrel
+   |η| < 1.5, endcap 1.5–2.1; corrected jet pT 20–40 and 40–100 GeV. The pT is the corrected jet pT for every tagger
+   (not the raw pT of the ParT path nor the pT^sig of the TEST taggers).
+2. **Scores per jet**, each from its own object; a missing score is the lowest value, so a curve ends at its matching
+   efficiency (`point = matched` in the CSV):
+   - ParT: `hltAK4PuppiJetParT` TauvsAll, nearest jet within ΔR < 0.05. Present for 100% of the jets (0.04% missing in
+     MinBiasL1Pass: the 12 events absent in v2).
+   - TEST `ds`, `dsA01`, `bdt`: `hltJetTauTagTEST`, matched on `jetEta`/`jetPhi` within ΔR < 0.05. 100% scored.
+   - HPS DeepTau: nearest `hltHpsPFTau` within ΔR < 0.3; score = deepTauVSjet − Medium(pT_HPS), the HLT Medium WP
+     (0.649 / 0.441 / 0.05 at 35 / 100 / 300 GeV, linear between), so 0 is the Medium WP. HPS-matched fraction:
+     HH τh 50%, DY τh 9%, HH b / light jets 44% / 46%, MinBiasF1000 jets 0.17%.
+   - L1 nnPuppiTau: nearest within ΔR < 0.3 (any pT). The nano has no continuous NN score, only flags, so the score is
+     1 matched / 2 `passLooseNN` / 3 `passTightNN`: three points (grey diamonds), no curve.
+3. **Labels.** Signal: jet within ΔR < 0.3 of a GenVisTau with pT > 20 GeV, HH (43,766 jets) and DY (16,474) separately.
+   Backgrounds: (a) all MinBiasF1000 jets (147,358; pileup fakes); (b) HH b jets (69,976) and (c) HH light/g jets (47,081):
+   nearest GenJet with pT > 15 GeV within ΔR < 0.4 with hadronFlavour 5 / 0, and no GenVisTau (any pT) or prompt e/μ
+   (GenPart pT > 10, isPrompt or isDirectPromptTauDecayProduct, last copy) within 0.3. The GenPart comes from the v2
+   cache, mapped to the TEST rows by the GenJet content of the event (49,103 / 49,103 mapped). HH c jets (3,488) are not shown.
+4. **Signal efficiency at 1% background efficiency** (HH τh, pT > 20 GeV; `tau_roc.csv`, `point = bkg1%`, the highest
+   efficiency with background ≤ 1%):
+
+   | tagger | MB all | MB barrel | MB endcap | HH b all | HH b barrel | HH b endcap |
+   |---|---|---|---|---|---|---|
+   | HLT ParT | 0.837 | 0.840 | 0.790 | **0.750** | **0.778** | **0.575** |
+   | TEST DeepSets `ds` | 0.852 | 0.863 | 0.843 | 0.261 | 0.289 | 0.203 |
+   | TEST DeepSets `dsA01` | 0.826 | 0.834 | 0.815 | 0.629 | 0.640 | 0.592 |
+   | TEST BDT | **0.856** | **0.869** | 0.831 | 0.332 | 0.344 | 0.278 |
+   | HPS DeepTau | (0.502) | (0.512) | (0.435) | 0.256 | 0.273 | 0.190 |
+   | L1 nnPuppiTau | — | — | — | — | — | — |
+
+   The HPS entry against MB is its matching efficiency: only 0.17% of the minimum-bias jets have an HPS τ, so its
+   whole curve is below 1% (item 7). L1: its best point (TightNN) has 5.5% MB and 17% b efficiency, above 1%.
+   At 5% / 10% background (CSV) the MB numbers converge (ParT 0.944 / 0.965, BDT 0.952 / 0.977) while the b-jet gap
+   stays (ParT 0.927 / 0.959, `dsA01` 0.868 / 0.903, `ds` 0.555 / 0.685). HH light/g at 1%: ParT 0.844, `dsA01` 0.766,
+   BDT 0.587, `ds` 0.503, HPS 0.375.
+5. **Against b and light jets ParT is the best tagger by far, against minimum bias the TEST taggers are equal or slightly
+   better.** ParT is trained with b / c / light classes; `ds` and the BDT only against minimum bias (+ hard-scatter class
+   for `ds`, read as p_τ/(p_τ+p_MB)), so b jets look τ-like to them. `dsA01` recovers most of the b rejection (0.63 at 1%)
+   but stays below ParT. This matches the path-level finding that the TEST taggers' HH gain over ParT comes mostly from
+   b-jet legs.
+6. **In pT bins** (HH, |η| < 2.1, 1% background): against MB ParT / BDT / `ds` reach 0.716 / 0.762 / 0.759 at 20–40 GeV
+   and 0.823 / 0.803 / 0.810 at 40–100 GeV; against HH b jets 0.399 / 0.244 / 0.101 (`dsA01` 0.372) at 20–40 and
+   0.735 / 0.468 / 0.314 (`dsA01` 0.575) at 40–100 GeV. The TEST advantage against MB is at low pT; ParT is ahead above 40 GeV.
+   Endcap is worse for every tagger, most for ParT against b jets (0.575 vs 0.778 barrel).
+7. **HPS-matched subset (fair to DeepTau).** HPS taus are stored only in events with an L1 τ or e/γ seed, so on all jets
+   the HPS curve is mostly the seed. `roc_summary_hpsmatched.png` and `roc_tauHH_vs_MBL1Pass_hpsmatched.png` use only jets
+   with an HPS τ within 0.3, with minimum bias from `MinBiasL1Pass` (31,786 L1-menu/TOPO-pass events of the 2M, containing
+   all seeded events; 3,258 HPS-matched jets, so 1% ≈ 33 jets). HH τh at 1% background:
+   - MB: ParT 0.796, BDT 0.658, `ds` 0.647, `dsA01` 0.638, DeepTau 0.426;
+   - HH b: ParT 0.763, `dsA01` 0.605, BDT 0.343, DeepTau 0.316, `ds` 0.242;
+   - On these seeded, harder minimum-bias jets ParT beats the TEST taggers also against minimum bias; DeepTau is the
+     weakest against MB in barrel and endcap, and against b jets is comparable to `ds` / the BDT.
+8. **WPs per jet** (HH τh eff. / MB jet eff. / HH b eff.; all |η| < 2.1, pT > 20): MediumParT 0.951 / 6.0% / 7.9%,
+   ParT1kHz 0.976 / 19% / 22%, DS1kHz 0.978 / 9.8% / 90%, DSParT 0.887 / 1.6% / 39%, DSA1kHz 0.979 / 10.5% / 88%,
+   BDT1kHz 0.961 / 6.3% / 62%, HPS Medium DeepTau 0.443 / 0.03% / 7.8% (×HPS matching), L1 TightNN 0.869 / 5.5% / 17%.
+   The TEST WPs were set on the double-τ rate with pT^sig > 35 GeV, so per-jet at pT > 20 they are loose.
+9. **DY τh** are softer: at 1% MB background ParT 0.751, `ds` 0.662, BDT 0.653, `dsA01` 0.667; at 1% HH b ParT 0.623,
+   `dsA01` 0.390, `ds` / BDT ≈ 0.04 (`roc_tauDY_vs_*.png`).
+10. **Caveats.**
+    - MinBiasF1000 (files 0–999) is the minimum-bias training sample of the TEST taggers; the scores are out-of-fold
+      (two-fold by file parity), but the population is the training one. HH and DY τh were also in their training (out-of-fold).
+      ParT was trained on other samples.
+    - The TEST WPs were chosen on the same minimum-bias events (rate on the 2M, MinBiasF1000 ⊂ 2M).
+    - HPS (and therefore DeepTau) exists only in L1-τ/e-γ-seeded events: on all jets its curve mixes the L1 seed with the
+      ID; use the HPS-matched plots for the ID comparison. MinBiasL1Pass jets are selected by the L1 menu.
+    - L1 nnPuppiTau has no stored NN score: only three working points.
+    - Per-jet efficiencies; the trigger-level comparison at equal rate is in the sections above and in the TEST README.
+
 ## Reproduce
 
 ```bash
@@ -147,4 +228,5 @@ condor_submit scripts/condor/menu_runs_jobsh.sub joblist=scripts/condor/part_tes
 python3 scripts/part/compare_outputs.py <www>/V50nano_170pre6HLT/object_performance \
     outputs/V50nano_170pre6HLTv2/object_performance --subdirs turnons path_efficiency resolution \
     --csv configs/V50nano/object_performance/part/compare_v1_v2_outputs.csv
+nice python3 scripts/part/tau_roc.py                             # tau ROCs -> www .../roc, tau_roc.csv (1 core)
 ```
