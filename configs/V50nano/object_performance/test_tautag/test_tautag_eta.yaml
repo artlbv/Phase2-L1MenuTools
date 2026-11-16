@@ -1,6 +1,8 @@
 # TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
 # configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
 #   --version V50nano_170pre6HLT_TESTtautag
+# or, with the HLT ParT (hltAK4PuppiJetParT, p2nano v2), only with
+#   --version V50nano_170pre6HLTv2_TESTtautag  (scripts/part/make_test_v2.py)
 # (the cache version holding the tagger object; outputs go to outputs/<that version>/).
 # hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
 # the HLT-jet taggers are not (the jets are stored in every event).
@@ -27,6 +29,8 @@ TESTTauMatching_Eta_Pt40ToInf:
     hltJetTauTagTEST:BDT1kHz: "eta"
     hltJetTauTagTEST:DS1kHz: "eta"
     hltJetTauTagTEST:DSA1kHz: "eta"
+    hltAK4PuppiJetParT:MediumParT: "eta"
+    hltAK4PuppiJetParT:ParT1kHz: "eta"
   xlabel: "Gen. $\\eta$"
   ylabel: "Matching Efficiency (gen vis. $p_T$ > 40 GeV) [TEST]"
   binning:
@@ -56,6 +60,8 @@ TESTTauTrigger_Eta_Pt50ToInf_wMatching:
     hltJetTauTagTEST:BDT1kHz: "eta"
     hltJetTauTagTEST:DS1kHz: "eta"
     hltJetTauTagTEST:DSA1kHz: "eta"
+    hltAK4PuppiJetParT:MediumParT: "eta"
+    hltAK4PuppiJetParT:ParT1kHz: "eta"
   thresholds: [35]
   xlabel: "Gen. $\\eta$"
   ylabel: "Matching + Trigger Eff. ($p_T > <threshold>$ GeV, gen vis. $p_T$ > 50 GeV) [TEST]"

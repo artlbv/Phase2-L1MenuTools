@@ -1,6 +1,8 @@
 # TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
 # configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
 #   --version V50nano_170pre6HLT_TESTtautag
+# or, with the HLT ParT (hltAK4PuppiJetParT, p2nano v2), only with
+#   --version V50nano_170pre6HLTv2_TESTtautag  (scripts/part/make_test_v2.py)
 # (the cache version holding the tagger object; outputs go to outputs/<that version>/).
 # hltHpsPFTau is stored only if an L1 tau seed fired: the HPS efficiencies are L1 x HLT-like;
 # the HLT-jet taggers are not (the jets are stored in every event).
@@ -27,6 +29,8 @@ TESTTauTriggerBarrel:
     hltJetTauTagTEST:BDT1kHz:barrel: "pt"
     hltJetTauTagTEST:DS1kHz:barrel: "pt"
     hltJetTauTagTEST:DSA1kHz:barrel: "pt"
+    hltAK4PuppiJetParT:MediumParT:barrel: "pt"
+    hltAK4PuppiJetParT:ParT1kHz:barrel: "pt"
   thresholds: [27, 35]
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (barrel, $p_T > <threshold>$ GeV) [TEST]"
@@ -55,6 +59,8 @@ TESTTauTriggerEndcap:
     hltJetTauTagTEST:BDT1kHz:endcap: "pt"
     hltJetTauTagTEST:DS1kHz:endcap: "pt"
     hltJetTauTagTEST:DSA1kHz:endcap: "pt"
+    hltAK4PuppiJetParT:MediumParT:endcap: "pt"
+    hltAK4PuppiJetParT:ParT1kHz:endcap: "pt"
   thresholds: [27, 35]
   xlabel: "Gen. $p_T$ (GeV)"
   ylabel: "Trigger Efficiency (endcap, $p_T > <threshold>$ GeV) [TEST]"

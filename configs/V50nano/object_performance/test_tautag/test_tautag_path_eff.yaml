@@ -1,6 +1,8 @@
 # TEST, NOT OFFICIAL: experimental tau taggers on HLT jets (hltJetTauTagTEST,
 # configs/V50nano/objects/test_tautag.yaml; README.md in this folder). Run only with
 #   --version V50nano_170pre6HLT_TESTtautag
+# The *_1kHz plots also hold the HLT ParT path emulated at 1 kHz (HLT_EMU_* bits of the v2 HLTEMU
+# record): only with --version V50nano_170pre6HLTv2_TESTtautag (scripts/part/make_test_v2.py).
 # Path level, HH -> bbtautau and DY (path_efficiency `paths:` map, as path_eff_taus_compare.yaml):
 # per-event efficiency of the HLT double-tau paths with the L1 seed L1_pDoublePuppiTau52_52
 # (HPS + DeepTau HLT_DoubleMediumDeepTauPFTauHPS35_eta2p1; ParticleTransformer on AK4 PUPPI jets
@@ -418,6 +420,18 @@ TESTDiTauPath_1kHz_VsSubleadPt:
         curves: [L1_and_HLT]
         labels:
           L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+      ParT_1kHz_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh30_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0183, jet $p_T$ > 30 (0.99 kHz, 64 ev., v2)"
+      ParT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh35_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0110, jet $p_T$ > 35 (0.99 kHz, 64 ev., v2)"
     plateau_min: 80
   split_by:
     field: status
@@ -478,6 +492,18 @@ TESTDiTauPath_1kHz_VsLeadPt:
         curves: [L1_and_HLT]
         labels:
           L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+      ParT_1kHz_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh30_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0183, jet $p_T$ > 30 (0.99 kHz, 64 ev., v2)"
+      ParT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh35_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0110, jet $p_T$ > 35 (0.99 kHz, 64 ev., v2)"
     plateau_min: 0
   split_by:
     field: status
@@ -538,6 +564,18 @@ TESTDiTauPath_1kHz_VsSubleadEta:
         curves: [L1_and_HLT]
         labels:
           L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+      ParT_1kHz_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh30_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0183, jet $p_T$ > 30 (0.99 kHz, 64 ev., v2)"
+      ParT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh35_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0110, jet $p_T$ > 35 (0.99 kHz, 64 ev., v2)"
     plateau_min: 0
   split_by:
     field: status
@@ -959,6 +997,18 @@ TESTDiTauPathDY_1kHz_VsSubleadPt:
         curves: [L1_and_HLT]
         labels:
           L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+      ParT_1kHz_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh30_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0183, jet $p_T$ > 30 (0.99 kHz, 64 ev., v2)"
+      ParT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh35_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0110, jet $p_T$ > 35 (0.99 kHz, 64 ev., v2)"
     plateau_min: 45
   split_by:
     field: status
@@ -1020,6 +1070,18 @@ TESTDiTauPathDY_1kHz_VsLeadPt:
         curves: [L1_and_HLT]
         labels:
           L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+      ParT_1kHz_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh30_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0183, jet $p_T$ > 30 (0.99 kHz, 64 ev., v2)"
+      ParT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh35_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0110, jet $p_T$ > 35 (0.99 kHz, 64 ev., v2)"
     plateau_min: 0
   split_by:
     field: status
@@ -1081,6 +1143,18 @@ TESTDiTauPathDY_1kHz_VsSubleadEta:
         curves: [L1_and_HLT]
         labels:
           L1_and_HLT: "TEST DeepSets > 0.607, reg. $p_T$ > 26 (0.99 kHz, 64 ev.)"
+      ParT_1kHz_30:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh30_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0183, jet $p_T$ > 30 (0.99 kHz, 64 ev., v2)"
+      ParT_1kHz_35:
+        L1: [L1_pDoublePuppiTau52_52_final]
+        HLT: [HLT_EMU_DoubleParTTauh35_1kHz]
+        curves: [L1_and_HLT]
+        labels:
+          L1_and_HLT: "HLT ParT > 0.0110, jet $p_T$ > 35 (0.99 kHz, 64 ev., v2)"
     plateau_min: 0
   split_by:
     field: status

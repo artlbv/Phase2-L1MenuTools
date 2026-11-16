@@ -117,10 +117,14 @@ ABS_RE = re.compile(r"^abs\((\w+)\)$")
 def _bit_file(bit: str) -> str:
     """Name of the cached record holding a bit: `L1` for L1_* seeds, `HLT` for HLT_*
     paths, `HLTTEST` for HLT_TEST_* (emulated TEST paths, not in any menu, e.g.
-    scripts/test_tautag/emulate_paths.py).
+    scripts/test_tautag/emulate_paths.py), `HLTEMU` for HLT_EMU_* (emulated variants of
+    menu paths from cached HLT objects, e.g. the ParT di-tau path at another score cut,
+    scripts/part/part_wps.py).
     """
     if bit.startswith("HLT_TEST_"):
         return "HLTTEST"
+    if bit.startswith("HLT_EMU_"):
+        return "HLTEMU"
     for prefix in ("L1", "HLT"):
         if bit.startswith(prefix + "_"):
             return prefix

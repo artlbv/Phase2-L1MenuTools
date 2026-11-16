@@ -81,6 +81,25 @@ TESTDiTauRatesL1Pass_DSA:
   test_objects: *dsa_objects
   purity: *dirates
 
+# HLT ParT (hltAK4PuppiJetParT: threshold on the UNcorrected AK4 jet pT, as the ParT HLT path;
+# only with --version V50nano_170pre6HLTv2_TESTtautag, scripts/part/make_test_v2.py).
+TESTTauRatesL1Pass_ParT:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: &part_objects
+    hltHpsPFTau:MediumDeepTau: "pt"
+    hltAK4PuppiJetParT:MediumParT: "pt"
+    hltAK4PuppiJetParT:ParT1kHz: "pt"
+    hltAK4PuppiJetParT:ParTEff90: "pt"
+    hltAK4PuppiJetParT:ParTEff80: "pt"
+  purity: *rates
+
+TESTDiTauRatesL1Pass_ParT:
+  sample: MinBiasL1Pass
+  version: V50nano
+  test_objects: *part_objects
+  purity: *dirates
+
 # Regressed pT: threshold on ptReg (hltJetTauTagRegTEST) with the DS1kHz cut and with the cut
 # re-chosen for 1 kHz at 26 GeV, against pT^sig with DS1kHz.
 TESTDiTauRatesL1Pass_DSReg:
