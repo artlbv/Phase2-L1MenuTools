@@ -340,7 +340,7 @@ def test_norm_events_seed_only(cache, events):
         )
 
 
-def test_plotter_outputs(cache, tmp_path, monkeypatch):
+def test_plotter_outputs(cache, tmp_path, monkeypatch, legend_titles):
     import os
 
     from menu_tools.object_performance.purity_plotter import PurityPlotter
@@ -365,3 +365,10 @@ def test_plotter_outputs(cache, tmp_path, monkeypatch):
         d / f"synthetic_plot_unmatched_per_event_vs_pu_thr10_{VERSION}.pdf"
     ).exists()
     assert (d / f"synthetic_plot_{VERSION}.yaml").exists()
+    # legend title: the sample label (raw key, no label for it) and the selection
+    title = legend_titles[f"synthetic_plot_unmatched_per_event_vs_pu_thr10_{VERSION}"]
+    assert title == [f"{SAMPLE}, $p_T \\geq$ 10 GeV"]
+    coll.cfg_plot.config_dict["sample_label"] = "My sample"
+    PurityPlotter("synthetic_plot", coll).plot()
+    title = legend_titles[f"synthetic_plot_unmatched_per_event_vs_pu_thr10_{VERSION}"]
+    assert title == ["My sample, $p_T \\geq$ 10 GeV"]

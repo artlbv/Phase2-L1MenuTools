@@ -1,6 +1,6 @@
 # Addition to caching_170pre6_HLT.yaml (same version, same sorted DY file list and row order):
-# gen visible taus and gen jets of DYLL_M50, cached later for the TEST tau-tagger path-level
-# study on DY -> tautau (configs/V50nano/object_performance/test_tautag/). Only new files:
+# gen visible taus and gen jets of DYLL_M50, needed by the DY tau configs (*_DY.yaml) and the
+# TEST tau-tagger path-level study on DY -> tautau. Only new files:
 #   cache_objects configs/V50nano/cache_objects/caching_170pre6_HLT_DYgen.yaml
 V50nano_170pre6HLT:
   DYLL_M50:
