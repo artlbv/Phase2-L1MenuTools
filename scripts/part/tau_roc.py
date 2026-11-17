@@ -19,6 +19,8 @@ isDirectPromptTauDecayProduct, isLastCopy; GenPart from the v2 cache, mapped to 
 GenJet content of the event).
 
     python3 scripts/part/tau_roc.py [--outdir <www dir>] [--csv <csv>] [--max-events N]
+    # official objects only (ParT, HPS DeepTau, L1), no TEST taggers and no CSV:
+    python3 scripts/part/tau_roc.py --taggers part,hps,l1 --csv none --outdir <www>/V50nano_170pre6HLTv2/object_performance/roc
 """
 
 import os
@@ -376,7 +378,17 @@ def main():
     p.add_argument("--csv", default=CSV)
     p.add_argument("--max-events", type=int, default=None, help="per sample, for tests")
     p.add_argument("--save-jets", default=None, help="optional parquet with the per-jet table")
+    p.add_argument("--taggers", default=",".join(TAGGERS),
+                   help="comma-separated taggers to draw and tabulate (default: all)")
     args = p.parse_args()
+    keep = args.taggers.split(",")
+    unknown = set(keep) - set(TAGGERS)
+    if unknown:
+        p.error(f"unknown taggers {sorted(unknown)}; choose from {list(TAGGERS)}")
+    for d in (TAGGERS, WPS):
+        for k in list(d):
+            if k not in keep:
+                del d[k]
     os.makedirs(args.outdir, exist_ok=True)
     hep.style.use("CMS")
     hh = load_sample("HHTo2B2Tau", args.max_events)
@@ -405,8 +417,9 @@ def main():
     figure_grid(sigs_h["HH_hpsmatched"], bkgs_h["MBL1Pass_hpsmatched"], "HH, HPS-matched",
                 names_h["MBL1Pass_hpsmatched"], "roc_tauHH_vs_MBL1Pass_hpsmatched", args.outdir)
     t = pd.concat([table(sigs, bkgs), table(sigs_h, bkgs_h)])
-    t.to_csv(args.csv, index=False)
-    print(f"wrote {args.csv} ({len(t)} rows)")
+    if args.csv.lower() != "none":
+        t.to_csv(args.csv, index=False)
+        print(f"wrote {args.csv} ({len(t)} rows)")
     key = t[(t.signal == "HH") & (t.pt == "pt20") & (t.point.isin(["matched", "bkg1%", "bkg5%"]))]
     with pd.option_context("display.width", 200, "display.max_rows", 500):
         print(key.pivot_table(index=["background", "eta", "tagger"], columns="point", values="sig_eff"))

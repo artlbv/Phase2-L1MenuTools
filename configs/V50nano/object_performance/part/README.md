@@ -137,6 +137,9 @@ Per-jet τ ID of all taggers on one common set of jets: `scripts/part/tau_roc.py
 https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/TEST_tautag_v2/object_performance/roc/ (PNG + PDF).
 Cache: `V50nano_170pre6HLTv2_TESTtautag` (v2 ParT row-aligned with the TEST taggers; HH 49,103, DY 200,000, MinBiasF1000
 159,920 events).
+The same plots with only the official objects (HLT ParT, HLT HPS DeepTau, L1 nnPuppiTau; no TEST taggers) are in the
+default folder https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/V50nano_170pre6HLTv2/object_performance/roc/
+(`--taggers part,hps,l1 --csv none`; same jets and numbers).
 
 ![HH τh vs minimum bias, b and light jets](https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/TEST_tautag_v2/object_performance/roc/roc_summary.png)
 
@@ -239,4 +242,6 @@ python3 scripts/part/compare_outputs.py <www>/V50nano_170pre6HLT/object_performa
     outputs/V50nano_170pre6HLTv2/object_performance --subdirs turnons path_efficiency resolution \
     --csv configs/V50nano/object_performance/part/compare_v1_v2_outputs.csv
 nice python3 scripts/part/tau_roc.py                             # tau ROCs -> www .../roc, tau_roc.csv (1 core)
+nice python3 scripts/part/tau_roc.py --taggers part,hps,l1 --csv none \
+    --outdir <www>/V50nano_170pre6HLTv2/object_performance/roc     # official objects only
 ```
