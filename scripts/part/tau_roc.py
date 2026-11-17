@@ -7,8 +7,8 @@ Each jet gets one score per tagger, taken from that tagger's own object:
   ds, dsA01, bdt   hltJetTauTagTEST (same jets; jetEta / jetPhi nearest within dR < 0.05)
   hps    hltHpsPFTau nearest within dR < 0.3: deepTauVSjet - Medium(pT_HPS), so 0 = HLT Medium WP
          (HPS taus are stored only in events with an L1 tau or e/gamma seed)
-  l1     L1nnPuppiTau nearest within dR < 0.3 (any pT): 1 matched, 2 passLooseNN, 3 passTightNN
-         (the nano has no continuous NN score, only the flags)
+  l1     L1nnPuppiTau nearest within dR < 0.3 (any pT): its NN ID score, stored in the nano branch
+         `chargedIso`; passLooseNN = score > 0.22, passTightNN = score > 0.40 exactly (checked)
 A missing score is the lowest value, so the ROC curves end at the matching efficiency.
 
 Labels: signal = jet within dR < 0.3 of a GenVisTau with pT > 20 GeV (HH and DY separately).
@@ -58,7 +58,7 @@ TAGGERS = {  # key: (label, color, linestyle)
     "dsA01": (r"TEST DeepSets $\alpha$ = 0.1", "#964a8b", "-"),
     "bdt": ("TEST BDT", "#f89c20", "-"),
     "hps": ("HLT HPS DeepTau (- Medium)", "#7a21dd", "--"),
-    "l1": ("L1 nnPuppiTau (match / LooseNN / TightNN)", "#9c9ca1", ":"),
+    "l1": ("L1 nnPuppiTau NN score", "#717581", "-."),
 }
 WPS = {  # tagger: [(name, cut)]
     "part": [("MediumParT", 0.11645), ("ParT1kHz", 0.01834)],
@@ -66,7 +66,7 @@ WPS = {  # tagger: [(name, cut)]
     "dsA01": [("DSA1kHz", 0.398)],
     "bdt": [("BDT1kHz", 0.363)],
     "hps": [("Medium DeepTau", 0.0)],
-    "l1": [("LooseNN", 2.0), ("TightNN", 3.0)],
+    "l1": [("L1 LooseNN", 0.22), ("L1 TightNN", 0.40)],
 }
 WP_MARKERS = ["o", "s", "^"]
 ETA = {"barrel": (0.0, 1.5), "endcap": (1.5, 2.1), "all": (0.0, 2.1)}
@@ -198,11 +198,15 @@ def load_sample(sample, n_events=None):
     hdt = take(ak.to_numpy(ak.flatten(h["deepTauVSjet"])), i)
     df["hps"] = np.where(i >= 0, hdt - hps_medium(hpt), MISSING)
     # L1 nnPuppiTau
-    l1 = read(sample, "L1nnPuppiTau", ["eta", "phi", "passLooseNN", "passTightNN"], n_events)
+    l1 = read(sample, "L1nnPuppiTau", ["eta", "phi", "chargedIso", "passLooseNN", "passTightNN"], n_events)
     i = nearest(jeta, jphi, l1["eta"], l1["phi"], 0.3)
-    loose = take(ak.to_numpy(ak.flatten(l1["passLooseNN"])).astype(float), i, 0)
-    tight = take(ak.to_numpy(ak.flatten(l1["passTightNN"])).astype(float), i, 0)
-    df["l1"] = np.where(i >= 0, 1 + (loose > 0) + (tight > 0), MISSING)
+    df["l1"] = take(ak.to_numpy(ak.flatten(l1["chargedIso"])), i)  # NN ID score
+    # sanity check: the pass flags are flat cuts on the score
+    for flag, cut in (("passLooseNN", 0.22), ("passTightNN", 0.40)):
+        fl = ak.to_numpy(ak.flatten(l1[flag])) > 0
+        sc = ak.to_numpy(ak.flatten(l1["chargedIso"]))
+        bad = int(((sc > cut) != fl).sum())
+        print(f"  L1 {flag} == (NN score > {cut}): {len(fl) - bad} / {len(fl)} L1 taus agree")
     # labels
     df["label"] = "mb" if sample.startswith("MinBias") else "other"
     if not sample.startswith("MinBias"):
@@ -267,15 +271,10 @@ def draw(ax, sig, bkg, title):
         if len(s) == 0 or len(b) == 0:
             continue
         th, es, eb = eff_curve(s, b)
-        if c == "l1":
-            ax.plot(es, eb, color=col, ls=ls, marker="D", ms=5, label=lab)
-        else:
-            if len(th) > 3000:
-                k = np.unique(np.linspace(0, len(th) - 1, 3000).astype(int))
-                es, eb = es[k], eb[k]
-            ax.plot(es, eb, color=col, ls=ls, lw=1.8, label=lab)
-        if c == "l1":
-            continue
+        if len(th) > 3000:
+            k = np.unique(np.linspace(0, len(th) - 1, 3000).astype(int))
+            es, eb = es[k], eb[k]
+        ax.plot(es, eb, color=col, ls=ls, lw=2.2 if c == "l1" else 1.8, label=lab)
         for (wn, cut), mk in zip(WPS[c], WP_MARKERS):
             e_s, e_b = eff_at(s, b, cut)
             ax.plot(e_s, max(e_b, 1e-5), marker=mk, color=col, ms=8, mfc="white", mew=2, ls="none")
@@ -290,8 +289,6 @@ def draw(ax, sig, bkg, title):
 def wp_legend_handles():
     hs = []
     for c, wps in WPS.items():
-        if c == "l1":
-            continue
         col = TAGGERS[c][1]
         for (wn, _), mk in zip(wps, WP_MARKERS):
             hs.append(

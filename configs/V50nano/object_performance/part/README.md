@@ -155,8 +155,11 @@ against minimum-bias jets all jet taggers are close, the TEST taggers slightly a
    - HPS DeepTau: nearest `hltHpsPFTau` within ΔR < 0.3; score = deepTauVSjet − Medium(pT_HPS), the HLT Medium WP
      (0.649 / 0.441 / 0.05 at 35 / 100 / 300 GeV, linear between), so 0 is the Medium WP. HPS-matched fraction:
      HH τh 50%, DY τh 9%, HH b / light jets 44% / 46%, MinBiasF1000 jets 0.17%.
-   - L1 nnPuppiTau: nearest within ΔR < 0.3 (any pT). The nano has no continuous NN score, only flags, so the score is
-     1 matched / 2 `passLooseNN` / 3 `passTightNN`: three points (grey diamonds), no curve.
+   - L1 nnPuppiTau: nearest within ΔR < 0.3 (any pT); the score is its NN ID score, stored in the nano branch
+     `L1nnPuppiTau_chargedIso` (despite the name). Check on all L1 taus of the four samples (508,307): `passLooseNN` ⇔
+     score > 0.22 and `passTightNN` ⇔ score > 0.40, with no exception (largest failing / smallest passing values
+     0.2197 / 0.2227 and 0.3994 / 0.4033, flat in pT), so the two flags lie exactly on the curve (grey markers).
+     L1-matched fraction: HH τh 95%, DY τh 74%, HH b / light 82% / 62%, MinBiasF1000 jets 21%.
 3. **Labels.** Signal: jet within ΔR < 0.3 of a GenVisTau with pT > 20 GeV, HH (43,766 jets) and DY (16,474) separately.
    Backgrounds: (a) all MinBiasF1000 jets (147,358; pileup fakes); (b) HH b jets (69,976) and (c) HH light/g jets (47,081):
    nearest GenJet with pT > 15 GeV within ΔR < 0.4 with hadronFlavour 5 / 0, and no GenVisTau (any pT) or prompt e/μ
@@ -172,13 +175,14 @@ against minimum-bias jets all jet taggers are close, the TEST taggers slightly a
    | TEST DeepSets `dsA01` | 0.826 | 0.834 | 0.815 | 0.629 | 0.640 | 0.592 |
    | TEST BDT | **0.856** | **0.869** | 0.831 | 0.332 | 0.344 | 0.278 |
    | HPS DeepTau | (0.502) | (0.512) | (0.435) | 0.256 | 0.273 | 0.190 |
-   | L1 nnPuppiTau | — | — | — | — | — | — |
+   | L1 nnPuppiTau NN score | 0.709 | 0.717 | 0.627 | 0.405 | 0.429 | 0.259 |
 
    The HPS entry against MB is its matching efficiency: only 0.17% of the minimum-bias jets have an HPS τ, so its
-   whole curve is below 1% (item 7). L1: its best point (TightNN) has 5.5% MB and 17% b efficiency, above 1%.
+   whole curve is below 1% (item 7). Part of the L1 rejection is likewise the L1 τ reconstruction itself (21% of the
+   MB jets have an L1 τ).
    At 5% / 10% background (CSV) the MB numbers converge (ParT 0.944 / 0.965, BDT 0.952 / 0.977) while the b-jet gap
    stays (ParT 0.927 / 0.959, `dsA01` 0.868 / 0.903, `ds` 0.555 / 0.685). HH light/g at 1%: ParT 0.844, `dsA01` 0.766,
-   BDT 0.587, `ds` 0.503, HPS 0.375.
+   BDT 0.587, L1 0.413, `ds` 0.503, HPS 0.375 (L1 barrel / endcap 0.457 / 0.226).
 5. **Against b and light jets ParT is the best tagger by far, against minimum bias the TEST taggers are equal or slightly
    better.** ParT is trained with b / c / light classes; `ds` and the BDT only against minimum bias (+ hard-scatter class
    for `ds`, read as p_τ/(p_τ+p_MB)), so b jets look τ-like to them. `dsA01` recovers most of the b rejection (0.63 at 1%)
@@ -196,20 +200,26 @@ against minimum-bias jets all jet taggers are close, the TEST taggers slightly a
    - HH b: ParT 0.763, `dsA01` 0.605, BDT 0.343, DeepTau 0.316, `ds` 0.242;
    - On these seeded, harder minimum-bias jets ParT beats the TEST taggers also against minimum bias; DeepTau is the
      weakest against MB in barrel and endcap, and against b jets is comparable to `ds` / the BDT.
-8. **WPs per jet** (HH τh eff. / MB jet eff. / HH b eff.; all |η| < 2.1, pT > 20): MediumParT 0.951 / 6.0% / 7.9%,
+8. **L1 nnPuppiTau NN score.** Against MB it is the weakest of the jet-level taggers apart from HPS (0.709 at 1%,
+   ParT 0.837, `ds` 0.852), but against HH b jets it is better than `ds` and the BDT (0.405 vs 0.261 / 0.332; ParT
+   0.750, `dsA01` 0.629). On the HPS-matched subset against MinBiasL1Pass it drops to 0.185 at 1% (ParT 0.796): on
+   seeded, τ-like minimum-bias jets the L1 NN separates little. In pT bins at 1% MB: 0.488 (20–40) / 0.513 (40–100),
+   lower than inclusive, where the softer pT spectrum of the MB jets helps.
+9. **WPs per jet** (HH τh eff. / MB jet eff. / HH b eff.; all |η| < 2.1, pT > 20): MediumParT 0.951 / 6.0% / 7.9%,
    ParT1kHz 0.976 / 19% / 22%, DS1kHz 0.978 / 9.8% / 90%, DSParT 0.887 / 1.6% / 39%, DSA1kHz 0.979 / 10.5% / 88%,
-   BDT1kHz 0.961 / 6.3% / 62%, HPS Medium DeepTau 0.443 / 0.03% / 7.8% (×HPS matching), L1 TightNN 0.869 / 5.5% / 17%.
+   BDT1kHz 0.961 / 6.3% / 62%, HPS Medium DeepTau 0.443 / 0.03% / 7.8% (×HPS matching), L1 LooseNN 0.904 / 9.9% / 25%,
+   L1 TightNN 0.869 / 5.5% / 17%.
    The TEST WPs were set on the double-τ rate with pT^sig > 35 GeV, so per-jet at pT > 20 they are loose.
-9. **DY τh** are softer: at 1% MB background ParT 0.751, `ds` 0.662, BDT 0.653, `dsA01` 0.667; at 1% HH b ParT 0.623,
+10. **DY τh** are softer: at 1% MB background ParT 0.751, `ds` 0.662, BDT 0.653, `dsA01` 0.667; at 1% HH b ParT 0.623,
    `dsA01` 0.390, `ds` / BDT ≈ 0.04 (`roc_tauDY_vs_*.png`).
-10. **Caveats.**
+11. **Caveats.**
     - MinBiasF1000 (files 0–999) is the minimum-bias training sample of the TEST taggers; the scores are out-of-fold
       (two-fold by file parity), but the population is the training one. HH and DY τh were also in their training (out-of-fold).
       ParT was trained on other samples.
     - The TEST WPs were chosen on the same minimum-bias events (rate on the 2M, MinBiasF1000 ⊂ 2M).
     - HPS (and therefore DeepTau) exists only in L1-τ/e-γ-seeded events: on all jets its curve mixes the L1 seed with the
       ID; use the HPS-matched plots for the ID comparison. MinBiasL1Pass jets are selected by the L1 menu.
-    - L1 nnPuppiTau has no stored NN score: only three working points.
+    - The L1 NN score is read from `chargedIso`; the identity with the pass flags is exact on these samples.
     - Per-jet efficiencies; the trigger-level comparison at equal rate is in the sections above and in the TEST README.
 
 ## Reproduce
