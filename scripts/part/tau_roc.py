@@ -20,7 +20,7 @@ GenJet content of the event).
 
     python3 scripts/part/tau_roc.py [--outdir <www dir>] [--csv <csv>] [--max-events N]
     # official objects only (ParT, HPS DeepTau, L1), no TEST taggers and no CSV:
-    python3 scripts/part/tau_roc.py --taggers part,hps,l1 --csv none --outdir <www>/V50nano_170pre6HLTv2/object_performance/roc
+    python3 scripts/part/tau_roc.py --taggers part,hps,l1 --seeded --csv none --outdir <www>/V50nano_170pre6HLTv2/object_performance/roc
 """
 
 import os
@@ -59,7 +59,7 @@ TAGGERS = {  # key: (label, color, linestyle)
     "ds": (r"TEST DeepSets $p_\tau/(p_\tau+p_{MB})$", "#5790fc", "-"),
     "dsA01": (r"TEST DeepSets $\alpha$ = 0.1", "#964a8b", "-"),
     "bdt": ("TEST BDT", "#f89c20", "-"),
-    "hps": ("HLT HPS DeepTau (- Medium)", "#7a21dd", "--"),
+    "hps": ("HLT HPS DeepTau (- Medium); HPS only in L1-seeded events", "#7a21dd", "--"),
     "l1": ("L1 nnPuppiTau NN score", "#717581", "-."),
 }
 WPS = {  # tagger: [(name, cut)]
@@ -70,6 +70,18 @@ WPS = {  # tagger: [(name, cut)]
     "hps": [("Medium DeepTau", 0.0)],
     "l1": [("L1 LooseNN", 0.22), ("L1 TightNN", 0.40)],
 }
+# seeded variant: every tagger only in events where L1_pDoublePuppiTau52_52 fired (the seed of both HLT double-tau
+# paths, DeepTau HPS35 and ParT Tauh30; HPS taus are stored in 100% of these events), MISSING elsewhere
+SEED = "pDoublePuppiTau52_52_final"
+SEEDED = {
+    "part_seed": (r"HLT ParT TauvsAll $\wedge$ L1 seed", "#e42536", "-"),
+    "hps_seed": (r"HLT HPS DeepTau (- Medium) $\wedge$ L1 seed", "#7a21dd", "--"),
+    "l1_seed": (r"L1 nnPuppiTau NN score $\wedge$ L1 seed", "#717581", "-."),
+}
+SEEDED_WPS = {k: v for k, v in [("part_seed", [("MediumParT", 0.11645), ("ParT1kHz", 0.01834)]),
+                                 ("hps_seed", [("Medium DeepTau", 0.0)]),
+                                 ("l1_seed", [("L1 LooseNN", 0.22), ("L1 TightNN", 0.40)])]}
+MB_EVENTS_ALL, MB_EVENTS_F1000 = 1999040, 159920
 WP_MARKERS = ["o", "s", "^"]
 ETA = {"barrel": (0.0, 1.5), "endcap": (1.5, 2.1), "all": (0.0, 2.1)}
 PT = {"pt20": (20.0, 1e9), "pt20to40": (20.0, 40.0), "pt40to100": (40.0, 100.0)}
@@ -203,6 +215,14 @@ def load_sample(sample, n_events=None):
     l1 = read(sample, "L1nnPuppiTau", ["eta", "phi", "chargedIso", "passLooseNN", "passTightNN"], n_events)
     i = nearest(jeta, jphi, l1["eta"], l1["phi"], 0.3)
     df["l1"] = take(ak.to_numpy(ak.flatten(l1["chargedIso"])), i)  # NN ID score
+    # L1 seed of the HLT double-tau paths, per jet (event-level bit)
+    seed = ak.to_numpy(read(sample, "L1", [SEED], n_events)[SEED]).astype(bool)
+    df["seed"] = seed[df["event"].to_numpy()]
+    for c in ("part", "hps", "l1"):
+        df[f"{c}_seed"] = np.where(df["seed"], df[c], MISSING)
+    nh = ak.to_numpy(ak.num(h["pt"]) > 0)
+    print(f"  seed fired in {seed.sum()} / {nev} events; events with HPS taus: {nh.sum()}, "
+          f"of which seeded {(nh & seed).sum()}; seeded events with HPS: {(nh & seed).sum()} / {seed.sum()}")
     # sanity check: the pass flags are flat cuts on the score
     for flag, cut in (("passLooseNN", 0.22), ("passTightNN", 0.40)):
         fl = ak.to_numpy(ak.flatten(l1[flag])) > 0
@@ -239,18 +259,19 @@ def load_sample(sample, n_events=None):
     return df
 
 
-def eff_curve(s, b):
-    """signal / background efficiency for every threshold among the observed (non-missing) values."""
+def eff_curve(s, b, nb=None):
+    """signal / background efficiency for every threshold among the observed (non-missing) values.
+    nb: background denominator if b is only a subset of the background jets (the rest has no score)."""
     s = np.sort(s)
     b = np.sort(b)
     th = np.unique(np.concatenate([s[s > MISSING / 2], b[b > MISSING / 2]]))
     es = 1 - np.searchsorted(s, th, side="left") / max(len(s), 1)
-    eb = 1 - np.searchsorted(b, th, side="left") / max(len(b), 1)
+    eb = (len(b) - np.searchsorted(b, th, side="left")) / (nb if nb else max(len(b), 1))
     return th, es, eb
 
 
-def eff_at(s, b, cut):
-    return np.mean(s >= cut), np.mean(b >= cut)
+def eff_at(s, b, cut, nb=None):
+    return np.mean(s >= cut), np.sum(b >= cut) / (nb if nb else max(len(b), 1))
 
 
 def at_bkg(th, es, eb, target):
@@ -267,31 +288,33 @@ def select(df, eta, pt):
     return df[(df.aeta >= lo) & (df.aeta < hi) & (df.pt >= plo) & (df.pt < phi)]
 
 
-def draw(ax, sig, bkg, title):
-    for c, (lab, col, ls) in TAGGERS.items():
+def draw(ax, sig, bkg, title, taggers=None, wps=None, nb=None):
+    taggers, wps = taggers or TAGGERS, wps or WPS
+    for c, (lab, col, ls) in taggers.items():
         s, b = sig[c].to_numpy(), bkg[c].to_numpy()
         if len(s) == 0 or len(b) == 0:
             continue
-        th, es, eb = eff_curve(s, b)
+        th, es, eb = eff_curve(s, b, nb)
         if len(th) > 3000:
             k = np.unique(np.linspace(0, len(th) - 1, 3000).astype(int))
             es, eb = es[k], eb[k]
-        ax.plot(es, eb, color=col, ls=ls, lw=2.2 if c == "l1" else 1.8, label=lab)
-        for (wn, cut), mk in zip(WPS[c], WP_MARKERS):
-            e_s, e_b = eff_at(s, b, cut)
+        ax.plot(es, eb, color=col, ls=ls, lw=2.2 if c.startswith("l1") else 1.8, label=lab)
+        for (wn, cut), mk in zip(wps[c], WP_MARKERS):
+            e_s, e_b = eff_at(s, b, cut, nb)
             ax.plot(e_s, max(e_b, 1e-5), marker=mk, color=col, ms=8, mfc="white", mew=2, ls="none")
     ax.set_yscale("log")
     ax.set_xlim(0, 1.0)
-    ax.set_ylim(1e-4, 1.2)
+    ax.set_ylim(1e-6 if nb else 1e-4, 1.2)
     ax.grid(True, which="major", alpha=0.3)
     ax.set_xlabel(r"$\tau_h$ efficiency")
     ax.text(0.04, 0.96, title, transform=ax.transAxes, va="top", fontsize=13)
 
 
-def wp_legend_handles():
+def wp_legend_handles(taggers=None, wps_all=None):
+    taggers, wps_all = taggers or TAGGERS, wps_all or WPS
     hs = []
-    for c, wps in WPS.items():
-        col = TAGGERS[c][1]
+    for c, wps in wps_all.items():
+        col = taggers[c][1]
         for (wn, _), mk in zip(wps, WP_MARKERS):
             hs.append(
                 plt.Line2D([], [], color=col, marker=mk, mfc="white", mew=2, ls="none", ms=8, label=wn)
@@ -303,39 +326,49 @@ def label(ax):
     hep.cms.label("Phase-2 Simulation Preliminary", data=True, rlabel="PU 200 (14 TeV)", ax=ax, fontsize=16)
 
 
-def figure_grid(sig, bkg, sig_name, bkg_name, fname, outdir):
+def bkg_text(b, nb, name):
+    return f"{nb:.0f} {name} (scored subset {len(b)})" if nb else f"{len(b)} {name}"
+
+
+def figure_grid(sig, bkg, sig_name, bkg_name, fname, outdir, taggers=None, wps=None, nb_fn=None, note=None):
+    taggers, wps = taggers or TAGGERS, wps or WPS
     fig, axes = plt.subplots(2, 3, figsize=(24, 15), sharey=True)
     for r, eta in enumerate(("barrel", "endcap")):
         for cc, pt in enumerate(PT):
             s, b = select(sig, eta, pt), select(bkg, eta, pt)
-            draw(
-                axes[r, cc],
-                s,
-                b,
-                f"{ETA_LABEL[eta]}, {PT_LABEL[pt]}\n{len(s)} $\\tau_h$ ({sig_name}), {len(b)} {bkg_name}",
-            )
+            nb = nb_fn(eta, pt) if nb_fn else None
+            title = f"{ETA_LABEL[eta]}, {PT_LABEL[pt]}\n{len(s)} $\\tau_h$ ({sig_name}), {bkg_text(b, nb, bkg_name)}"
+            if note:
+                title += f"\n{note}"
+            draw(axes[r, cc], s, b, title, taggers, wps, nb)
             if cc == 0:
                 axes[r, cc].set_ylabel(f"{bkg_name} efficiency")
             label(axes[r, cc])
     h, lab = axes[0, 0].get_legend_handles_labels()
-    fig.legend(h + wp_legend_handles(), lab + [x.get_label() for x in wp_legend_handles()],
-               loc="lower center", ncol=6, fontsize=13, frameon=False)
+    wh = wp_legend_handles(taggers, wps)
+    fig.legend(h + wh, lab + [x.get_label() for x in wh], loc="lower center", ncol=5, fontsize=13, frameon=False)
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     save(fig, outdir, fname)
 
 
-def figure_summary(sig, bkgs, names, outdir, fname="roc_summary", sig_name="HH"):
+def figure_summary(sig, bkgs, names, outdir, fname="roc_summary", sig_name="HH", taggers=None, wps=None,
+                   nb_fns=None, note=None):
+    taggers, wps, nb_fns = taggers or TAGGERS, wps or WPS, nb_fns or {}
     fig, axes = plt.subplots(1, len(bkgs), figsize=(8 * len(bkgs), 9), sharey=True)
     for ax, (bk, bdf) in zip(axes, bkgs.items()):
         s = select(sig, "all", "pt20")
         b = select(bdf, "all", "pt20")
-        draw(ax, s, b, f"{ETA_LABEL['all']}, {PT_LABEL['pt20']}\n{len(s)} $\\tau_h$ ({sig_name}), {len(b)} {names[bk]}")
+        nb = nb_fns[bk]("all", "pt20") if bk in nb_fns else None
+        title = f"{ETA_LABEL['all']}, {PT_LABEL['pt20']}\n{len(s)} $\\tau_h$ ({sig_name}), {bkg_text(b, nb, names[bk])}"
+        if note:
+            title += f"\n{note}"
+        draw(ax, s, b, title, taggers, wps, nb)
         ax.set_ylabel("background efficiency")
         label(ax)
     h, lab = axes[0].get_legend_handles_labels()
-    fig.legend(h + wp_legend_handles(), lab + [x.get_label() for x in wp_legend_handles()],
-               loc="lower center", ncol=6, fontsize=13, frameon=False)
-    fig.tight_layout(rect=(0, 0.13, 1, 1))
+    wh = wp_legend_handles(taggers, wps)
+    fig.legend(h + wh, lab + [x.get_label() for x in wh], loc="lower center", ncol=4, fontsize=13, frameon=False)
+    fig.tight_layout(rect=(0, 0.15, 1, 1))
     save(fig, outdir, fname)
 
 
@@ -346,24 +379,26 @@ def save(fig, outdir, fname):
     print(f"  wrote {outdir}/{fname}.png/.pdf")
 
 
-def table(sigs, bkgs):
+def table(sigs, bkgs, taggers=None, wps=None, nb_fns=None):
+    taggers, wps, nb_fns = taggers or TAGGERS, wps or WPS, nb_fns or {}
     rows = []
     for sn, sdf in sigs.items():
         for bk, bdf in bkgs.items():
             for eta in ETA:
                 for pt in PT:
                     s, b = select(sdf, eta, pt), select(bdf, eta, pt)
-                    for c in TAGGERS:
+                    nb = nb_fns[bk](eta, pt) if bk in nb_fns else None
+                    for c in taggers:
                         sv, bv = s[c].to_numpy(), b[c].to_numpy()
-                        th, es, eb = eff_curve(sv, bv)
-                        base = dict(signal=sn, background=bk, eta=eta, pt=pt, tagger=c, n_sig=len(sv), n_bkg=len(bv))
-                        ms, mb = np.mean(sv > MISSING / 2), np.mean(bv > MISSING / 2)
+                        th, es, eb = eff_curve(sv, bv, nb)
+                        base = dict(signal=sn, background=bk, eta=eta, pt=pt, tagger=c, n_sig=len(sv), n_bkg=round(nb) if nb else len(bv))
+                        ms, mb = np.mean(sv > MISSING / 2), np.sum(bv > MISSING / 2) / (nb if nb else max(len(bv), 1))
                         rows.append(base | dict(point="matched", sig_eff=ms, bkg_eff=mb, cut=np.nan))
                         for t in TARGETS:
                             e_s, e_b, cut = at_bkg(th, es, eb, t)
                             rows.append(base | dict(point=f"bkg{int(round(t * 100))}%", sig_eff=e_s, bkg_eff=e_b, cut=cut))
-                        for wn, cut in WPS[c]:
-                            e_s, e_b = eff_at(sv, bv, cut)
+                        for wn, cut in wps[c]:
+                            e_s, e_b = eff_at(sv, bv, cut, nb)
                             rows.append(base | dict(point=wn, sig_eff=e_s, bkg_eff=e_b, cut=cut))
     out = pd.DataFrame(rows)
     for c in ("sig_eff", "bkg_eff"):
@@ -378,6 +413,8 @@ def main():
     p.add_argument("--csv", default=CSV)
     p.add_argument("--max-events", type=int, default=None, help="per sample, for tests")
     p.add_argument("--save-jets", default=None, help="optional parquet with the per-jet table")
+    p.add_argument("--seeded", action="store_true",
+                   help="also make the *_seeded plots: ParT, DeepTau and L1 only in L1_pDoublePuppiTau52_52 events")
     p.add_argument("--taggers", default=",".join(TAGGERS),
                    help="comma-separated taggers to draw and tabulate (default: all)")
     args = p.parse_args()
@@ -416,13 +453,32 @@ def main():
                    "HH, HPS-matched")
     figure_grid(sigs_h["HH_hpsmatched"], bkgs_h["MBL1Pass_hpsmatched"], "HH, HPS-matched",
                 names_h["MBL1Pass_hpsmatched"], "roc_tauHH_vs_MBL1Pass_hpsmatched", args.outdir)
-    t = pd.concat([table(sigs, bkgs), table(sigs_h, bkgs_h)])
+    tabs = [table(sigs, bkgs), table(sigs_h, bkgs_h)]
+    if args.seeded:
+        # every curve needs the seed. Minimum bias: the seeded jets come from MinBiasL1Pass (all 1306 seed events of
+        # the 2M); the denominator is all minimum-bias jets of the 2M, estimated per eta / pT bin as the
+        # MinBiasF1000 jet count x 1999040 / 159920
+        mbs = mbl[mbl.seed]
+        scale = MB_EVENTS_ALL / MB_EVENTS_F1000
+        nb_mb = lambda eta, pt: len(select(mb, eta, pt)) * scale  # noqa: E731
+        bkgs_s = {"MB": mbs, "HHb": bkgs["HHb"], "HHlight": bkgs["HHlight"]}
+        names_s = {"MB": "minimum-bias jets (2M)", "HHb": BKG["HHb"][2], "HHlight": BKG["HHlight"][2]}
+        note = r"all taggers $\wedge$ L1_pDoublePuppiTau52_52"
+        kw = dict(taggers=SEEDED, wps=SEEDED_WPS)
+        figure_summary(sigs["HH"], bkgs_s, names_s, args.outdir, "roc_summary_seeded", "HH", nb_fns={"MB": nb_mb},
+                       note=note, **kw)
+        for sn, sdf in sigs.items():
+            for bk, bdf in bkgs_s.items():
+                figure_grid(sdf, bdf, sn, names_s[bk], f"roc_tau{sn}_vs_{bk}_seeded", args.outdir,
+                            nb_fn=nb_mb if bk == "MB" else None, note=note, **kw)
+        tabs.append(table({f"{k}_seeded": v for k, v in sigs.items()}, bkgs_s, nb_fns={"MB": nb_mb}, **kw))
+    t = pd.concat(tabs)
     if args.csv.lower() != "none":
         t.to_csv(args.csv, index=False)
         print(f"wrote {args.csv} ({len(t)} rows)")
-    key = t[(t.signal == "HH") & (t.pt == "pt20") & (t.point.isin(["matched", "bkg1%", "bkg5%"]))]
+    key = t[(t.signal.isin(["HH", "HH_seeded"])) & (t.pt == "pt20") & (t.point.isin(["matched", "bkg1%", "bkg5%"]))]
     with pd.option_context("display.width", 200, "display.max_rows", 500):
-        print(key.pivot_table(index=["background", "eta", "tagger"], columns="point", values="sig_eff"))
+        print(key.pivot_table(index=["signal", "background", "eta", "tagger"], columns="point", values="sig_eff"))
 
 
 if __name__ == "__main__":

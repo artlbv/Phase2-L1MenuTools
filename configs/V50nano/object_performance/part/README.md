@@ -141,6 +141,32 @@ The same plots with only the official objects (HLT ParT, HLT HPS DeepTau, L1 nnP
 default folder https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/V50nano_170pre6HLTv2/object_performance/roc/
 (`--taggers part,hps,l1 --csv none`; same jets and numbers).
 
+**HLT HPS DeepTau is only stored after an L1 seed.** hltHpsPFTau exists in every event where `L1_pDoublePuppiTau52_52`
+fired (HH 16,398 / 16,398, DY 17,670 / 17,670, minimum bias 1,306 / 1,306 of the 2M) and in a few events of the
+τ-cross seeds, never without one of them. In the unseeded plots the DeepTau curve therefore contains the seed
+efficiency (it ends at 0.50 of the HH τh), while ParT and L1 are counted on all jets; the legend says so.
+
+**Seeded version (`--seeded`, `roc_*_seeded`, default v2 folder only).** ParT, DeepTau and the L1 NN score all
+∧ `L1_pDoublePuppiTau52_52`, the seed of both HLT double-τ paths (ParT Tauh30 and DeepTau HPS35); all three curves
+end at the seed efficiency (0.45–0.47 of the HH τh jets). Minimum bias: the seeded jets are those of MinBiasL1Pass
+(all 1,306 seed events of the 2M), divided by all minimum-bias jets of the 2M (MinBiasF1000 jets per η / pT bin
+× 1,999,040 / 159,920; check: the HPS-matched MB fraction is 0.00166 in MinBiasF1000 and 0.00174 from MinBiasL1Pass).
+
+HH τh, |η| < 2.1, pT > 20 GeV, all ∧ seed:
+
+| | τh eff. | MB jet eff. | HH b eff. | HH light eff. |
+|---|---|---|---|---|
+| seed only (ParT-scored jets) | 0.466 | 1.8e-3 | 0.358 | 0.390 |
+| ParT MediumParT | 0.449 | 1.9e-4 | 0.031 | 0.019 |
+| ParT ParT1kHz | 0.458 | 4.0e-4 | 0.080 | 0.046 |
+| HPS Medium DeepTau | 0.403 | 3.9e-4 | 0.065 | 0.036 |
+| L1 TightNN | 0.437 | 1.1e-3 | 0.102 | 0.078 |
+
+At 1% HH b (light) efficiency ∧ seed: ParT 0.415 (0.434), DeepTau 0.259 (0.352), L1 0.255 (0.265).
+With the seed applied to both, ParT Medium keeps more τh than DeepTau Medium (0.449 vs 0.403) at half the
+minimum-bias jet efficiency, and its curve is below DeepTau's everywhere except at the lowest τh efficiencies of the
+20–40 GeV endcap bin (few jets).
+
 ![HH τh vs minimum bias, b and light jets](https://alobanov.web.cern.ch/L1T/Phase2/menu/Validation/MenuTools_AR26/TEST_tautag_v2/object_performance/roc/roc_summary.png)
 
 *HH τh efficiency against the background efficiency per jet, |η| < 2.1, corrected pT > 20 GeV. Left: MinBiasF1000 jets; middle: HH b jets;
@@ -242,6 +268,6 @@ python3 scripts/part/compare_outputs.py <www>/V50nano_170pre6HLT/object_performa
     outputs/V50nano_170pre6HLTv2/object_performance --subdirs turnons path_efficiency resolution \
     --csv configs/V50nano/object_performance/part/compare_v1_v2_outputs.csv
 nice python3 scripts/part/tau_roc.py                             # tau ROCs -> www .../roc, tau_roc.csv (1 core)
-nice python3 scripts/part/tau_roc.py --taggers part,hps,l1 --csv none \
-    --outdir <www>/V50nano_170pre6HLTv2/object_performance/roc     # official objects only
+nice python3 scripts/part/tau_roc.py --taggers part,hps,l1 --seeded --csv none \
+    --outdir <www>/V50nano_170pre6HLTv2/object_performance/roc     # official objects only, + seeded
 ```
